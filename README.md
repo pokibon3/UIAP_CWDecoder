@@ -6,9 +6,12 @@ UIAP Pro Microで動作するサンプルプログラムです。
 
 ## freqcounter
 MIC入力を8000Hzでサンプリングし、FFT解析結果をスペアナ風に表示します。  
-最大表示周波数は約3KHz、ピーク周波数表示付きです。
+最大表示周波数は3KHz、ピーク周波数表示付きです。
 
 ## cw_decoder_ik
-モールス信号をMIC入力し、デコードした結果を表示します。
-    SW1 : 英文/和文切り換え
-    SW2 : 666Hz / 888Hz / 1000Hz切り換え
+モールス信号をMIC入力し、デコードした結果を表示します。  
+    SW1 : 英文/和文切り換え  
+    SW2 : 666Hz / 888Hz / 1000Hz切り換え  
+
+※本ソフトはOZIJHM氏のArduino用CW DECODERをCH32V003+ch32v003funの環境に移植したものです。  
+ http://oz1jhm.dk/content/very-simpel-cw-decoder-easy-build

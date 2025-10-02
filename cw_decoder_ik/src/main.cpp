@@ -315,7 +315,7 @@ int main()
 
 		if (filteredstate == high){  //// we did end a LOW
 	
-			int16_t lacktime = 10;
+			int16_t lacktime = 8;
 			if(wpm > 25)lacktime=10; ///  when high speeds we have to have a little more pause before new letter or new word 
 			if(wpm > 30)lacktime=12;
 			if(wpm > 35)lacktime=15;
