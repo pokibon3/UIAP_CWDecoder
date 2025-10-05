@@ -5,7 +5,7 @@ UIAP Pro Microで動作するサンプルプログラムです。
 書き込みには、WCH-LinkEが必要です。
 
 ## freqcounter
-MIC入力を8000Hzでサンプリングし、FFT解析結果をスペアナ風に表示します。  
+MIC入力を6000Hzでサンプリングし、FFT解析結果をスペアナ風に表示します。  
 最大表示周波数は3KHz、ピーク周波数表示付きです。
 
 ## cw_decoder_ik
