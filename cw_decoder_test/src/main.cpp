@@ -7,18 +7,17 @@
 //
 //  Hardware Connections
 //
-//	UIAP	CH32V003  	SSD1306(SPI)	SW		MIC    	 
+//	UIAP	CH32V003  	SSD1306(SPI)	SW1		SW2		MIC    	 
 //	10	    PD0            DC
 //	 8      PC6            MOSI
 //   9      PC7            RES
 //   7      PC5            SCK
 //   5      PC3            CS
-//	A1	    PA1                         SW1
-//	A2      PC4                         SW2
-//  A3      PD2							SW3
-//	A0		PA2									OUT
-//	3.3V                  3.3V           		VCC(Via 78L33 3.3V)
-//  GND                    GND          		GND
+//	 3	    PC1                         SW1
+//	 4      PC2                                 SW2
+//	A0		PA2											OUT
+//	5V                     5V           				VCC(Via 78L33 3.3V)
+//  GND                    GND          				GND
 //
 #define OLED_SPI
 #define SERIAL_OUT
@@ -49,10 +48,10 @@
 #define millis() (SysTick->CNT / DELAY_MS_TIME)
 
 //#define LED_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 5)
-#define SW1_PIN GPIOv_from_PORT_PIN(GPIO_port_A, 1)		// for uiap
-#define SW2_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 4)		// for uiap
-#define SW3_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 2)
+#define SW1_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 1)		// for uiap
+#define SW2_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 2)		// for uiap
 #define ADC_PIN GPIOv_from_PORT_PIN(GPIO_port_A, 2)		// for uiap
+//#define LED_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 5)
 #define LED_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 0)		// for uiap
 #define UART_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 5)
 
@@ -187,9 +186,8 @@ void setup()
     GPIO_port_enable(GPIO_port_C);
     GPIO_port_enable(GPIO_port_D);
     // 各ピンの設定
-    GPIO_pinMode(SW1_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
-    GPIO_pinMode(SW2_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
-    GPIO_pinMode(SW3_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
+    GPIO_pinMode(SW1_PIN, GPIO_pinMode_I_pullDown, GPIO_Speed_10MHz);
+    GPIO_pinMode(SW2_PIN, GPIO_pinMode_I_pullDown, GPIO_Speed_10MHz);
     GPIO_pinMode(ADC_PIN, GPIO_pinMode_I_analog, GPIO_Speed_10MHz);
     
 	GPIO_pinMode(LED_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);

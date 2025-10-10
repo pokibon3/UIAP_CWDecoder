@@ -33,13 +33,14 @@
 // what type of OLED - uncomment just one
 //#define SSD1306_64X32
 //#define SSD1306_128X32
-#define SSD1306_128X64
-#ifdef OLED_SPI
-#include "ssd1306_spi.h"
-#else
-#include "ssd1306_i2c.h"
-#endif
-#include "ssd1306.h"
+//#define SSD1306_128X64
+//#ifdef OLED_SPI
+//#include "ssd1306_spi.h"
+//#else
+//#include "ssd1306_i2c.h"
+//#endif
+//#include "ssd1306.h"
+#include "st7735.h"
 
 #define GPIO_ADC_MUX_DELAY 100
 #define GPIO_ADC_sampletime GPIO_ADC_sampletime_43cy
@@ -115,9 +116,12 @@ void updateinfolinelcd()
 		mode = "JP";
 	}
 	mini_snprintf(buf, sizeof(buf), "%2d WPM[%s%sHz]", w, mode, tone[speed]);
-	ssd1306_drawstr_sz(0 ,2 , buf, 1, fontsize_8x8);
-	ssd1306_drawFastHLine(0, 13, 128, 1);
-	ssd1306_refresh();
+//	ssd1306_drawstr_sz(0 ,2 , buf, 1, fontsize_8x8);
+//	ssd1306_drawFastHLine(0, 13, 128, 1);
+//	ssd1306_refresh();
+	tft_set_cursor(0, 0);
+	tft_print(buf);
+	tft_draw_line(0, 13, 160, 13, BLUE);
 }
 
 const int colums = 10; /// have to be 16 or 20
@@ -147,19 +151,28 @@ void printascii(int16_t asciinumber)
 		lcdindex = 0;
 		if (rows == 4){
 			for (int i = 0; i <= colums - 1 ; i++){
-				ssd1306_drawchar_sz(i * FONT_WIDTH ,(rows - 3) * 16 , line2[i], 1, fontsize_16x16);
-				line2[i]=line1[i];
+				//ssd1306_drawchar_sz(i * FONT_WIDTH ,(rows - 3) * 16 , line2[i], 1, fontsize_16x16);
+				tft_set_cursor(i * FONT_WIDTH ,(rows - 3) * 16);
+				tft_print_char(line2[i]);
+
+				line2[i] = line1[i];
 			}
 		}
-		for (int i = 0; i <= colums-1 ; i++){
-			ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 2) * 16 , line1[i], 1, fontsize_16x16);
-			ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 1) * 16 , 32, 1, fontsize_16x16);
+		for (int i = 0; i <= colums - 1 ; i++){
+			//ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 2) * 16 , line1[i], 1, fontsize_16x16);
+			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 2) * 16);
+			tft_print_char(line1[i]);
+			//ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 1) * 16 , 32, 1, fontsize_16x16);
+			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 1) * 16 );
+			tft_print_char(32);
 		}
  	}
 	line1[lcdindex]=asciinumber;
-	ssd1306_drawchar_sz((lcdindex + fail)* FONT_WIDTH ,(rows - 1) * 16 , asciinumber, 1, fontsize_16x16);
+	//ssd1306_drawchar_sz((lcdindex + fail)* FONT_WIDTH ,(rows - 1) * 16 , asciinumber, 1, fontsize_16x16);
+	tft_set_cursor((lcdindex + fail) * FONT_WIDTH ,(rows - 1) * 16);
+	tft_print_char(asciinumber);
 	lcdindex += 1;
-	ssd1306_refresh();
+	//ssd1306_refresh();
 	lastChar = asciinumber;
 }
 
@@ -198,15 +211,22 @@ void setup()
 	GPIO_pinMode(UART_PIN, GPIO_pinMode_O_pushPullMux, GPIO_Speed_10MHz);
 	RCC->APB2PCENR |= RCC_APB2Periph_AFIO;
 
-#ifdef OLED_SPI
-	ssd1306_spi_init();		// i2c Setup
-#else
-	ssd1306_i2c_init();		// i2c Setup
-#endif
-	ssd1306_init();			// SSD1306 Setup
-	ssd1306_setbuf(0);		// Clear Screen
-	ssd1306_drawstr_sz(0, 32, title1, 1, fontsize_8x8);
-	ssd1306_refresh();
+//#ifdef OLED_SPI
+//	ssd1306_spi_init();		// i2c Setup
+//#else
+//	ssd1306_i2c_init();		// i2c Setup
+//#endif
+//	ssd1306_init();			// SSD1306 Setup
+//	ssd1306_setbuf(0);		// Clear Screen
+//	ssd1306_drawstr_sz(0, 32, title1, 1, fontsize_8x8);
+//	ssd1306_refresh();
+	tft_init();
+	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
+	tft_set_cursor(0, 0);
+	tft_set_color(WHITE);
+	tft_set_cursor(0, 16);
+	tft_print(title1);
+	
 	GPIO_ADCinit();
 	initGoertzel(speed);
 	sampling_period_us = 1000000 / SAMPLING_FREQUENCY;
@@ -223,8 +243,10 @@ int main()
 	SystemInit();			// ch32v003 sETUP
 	setup();				// gpio Setup;
 	Delay_Ms( 2000 );
-	ssd1306_setbuf(0);	// Clear Screen
-	ssd1306_refresh();
+//	ssd1306_setbuf(0);	// Clear Screen
+//	ssd1306_refresh();
+	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
+
 	while(1) {
  	  	int16_t ave = 0;
 
