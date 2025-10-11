@@ -51,6 +51,8 @@
 #define GREENYELLOW RGB(173, 255, 41)
 #define PINK        RGB(255, 130, 198)
 
+#define FONT_SCALE_8X8  1
+#define FONT_SCALE_16X16 2
 /// \brief Initialize ST7735
 void tft_init(void);
 

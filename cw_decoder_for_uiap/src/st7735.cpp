@@ -242,9 +242,9 @@ void tft_init(void)
  
     // Set rotation
     write_command_8(ST7735_MADCTL);
-    write_data_8(ST7735_MADCTL_MY | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 0 - Horizontal
+    //write_data_8(ST7735_MADCTL_MY | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 0 - Horizontal
     //write_data_8(ST7735_MADCTL_BGR);                                        // 1 - Vertical
-    //write_data_8(ST7735_MADCTL_MX | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 2 - Horizontal
+    write_data_8(ST7735_MADCTL_MX | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 2 - Horizontal
     //write_data_8(ST7735_MADCTL_MX | ST7735_MADCTL_MY | ST7735_MADCTL_BGR);  // 3 - Vertical
 
     // Set Interface Pixel Format - 16-bit/pixel
@@ -329,38 +329,6 @@ static void tft_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 /// \brief Print a Character
 /// \param c Character to print
 /// \details DMA accelerated.
-/*
-void tft_print_char(char c)
-{
-//    const unsigned char* start = &font[c + (c << 2)];
-    const unsigned char* start = &font[(c << 3)];
-    uint16_t sz = 0;
-    for (uint8_t i = 0; i < FONT_HEIGHT; i++)
-    {
-        for (uint8_t j = 0; j < FONT_WIDTH; j++)
-        {
-            if ((*(start + j)) & (0x01 << i))
-            {
-                _buffer[sz++] = _color >> 8;
-                _buffer[sz++] = _color;
-            }
-            else
-            {
-                _buffer[sz++] = _bg_color >> 8;
-                _buffer[sz++] = _bg_color;
-            }
-        }
-    }
-
-    START_WRITE();
-    tft_set_window(_cursor_x, _cursor_y, _cursor_x + FONT_WIDTH - 1, _cursor_y + FONT_HEIGHT - 1);
-    DATA_MODE();
-    SPI_send_DMA(_buffer, sz, 1);
-    END_WRITE();
-}
-*/
-
-
 // _buffer は (FONT_WIDTH * FONT_HEIGHT * font_scale * font_scale * 2) バイト以上必要
 // 例: 最大2倍なら 8*8*2*2*2 = 512 バイト
 void tft_print_char(char c, uint8_t font_scale)
@@ -417,7 +385,7 @@ void tft_print(const char* str, uint8_t scale)
     while (*str)
     {
         tft_print_char(*str++, scale);
-        _cursor_x += FONT_WIDTH + 1;
+        _cursor_x += (FONT_WIDTH - 2) * scale;
     }
 }
 

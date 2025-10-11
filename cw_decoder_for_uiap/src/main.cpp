@@ -60,6 +60,7 @@
 
 #define SAMPLES 48 
 #define SAMPLING_FREQUENCY 8000
+#define FONT_WIDTH 12
 
 // function prototype (declaration), definition in "ch32v003fun.c"
 extern "C" int mini_snprintf(char* buffer, unsigned int buffer_len, const char *fmt, ...);
@@ -67,7 +68,10 @@ extern "C" int mini_snprintf(char* buffer, unsigned int buffer_len, const char *
 static uint16_t sampling_period_us;
 static int16_t 	morseData[SAMPLES];
 
-static char title1[]   = "CW Decoder V1.1u";
+static char title1[]   = " CW Decoder  ";
+static char title2[]   = "  for UIAP   ";
+static char title3[]   = " Version 1.1 ";
+
 static uint16_t magnitudelimit = 100;
 static uint16_t magnitudelimit_low = 100;
 static uint16_t realstate = low;
@@ -90,7 +94,7 @@ static uint16_t wpm;
 static char		sw = MODE_US;
 static int16_t 	speed = 1;
 
-char *tone[] = {
+const char *tone[] = {
 	" 600",
 	" 800",
 	"1000"
@@ -103,7 +107,7 @@ char *tone[] = {
 void updateinfolinelcd()
 {
 	char buf[17];
-	char *mode;
+	const char *mode;
 	uint16_t w;
 
 	if (wpm < 10) {
@@ -116,16 +120,16 @@ void updateinfolinelcd()
 	} else {
 		mode = "JP";
 	}
-	mini_snprintf(buf, sizeof(buf), "%2d WPM[%s%sHz]", w, mode, tone[speed]);
-//	ssd1306_drawstr_sz(0 ,2 , buf, 1, fontsize_8x8);
-//	ssd1306_drawFastHLine(0, 13, 128, 1);
-//	ssd1306_refresh();
+	mini_snprintf(buf, sizeof(buf), "%2dWPM %s%s", w, mode, tone[speed]);
 	tft_set_cursor(0, 0);
-	tft_print(buf);
-	tft_draw_line(0, 13, 160, 13, BLUE);
+	tft_set_color(BLUE);
+	tft_print(buf, FONT_SCALE_16X16);
+	tft_draw_line(0, 17, 160, 17, YELLOW);
+	tft_set_color(WHITE);
 }
 
-const int colums = 10; /// have to be 16 or 20
+
+const int colums = 13; /// have to be 16 or 20
 const int rows = 4;  /// have to be 2 or 4
 
 int lcdindex = 0;
@@ -137,7 +141,6 @@ uint8_t lastChar = 0;
 // one a time so we can generate   //
 // special letters                 //
 /////////////////////////////////////
-#define FONT_WIDTH 12
 void printascii(int16_t asciinumber)
 {
 	int fail = 0;
@@ -147,33 +150,28 @@ void printascii(int16_t asciinumber)
 #ifdef SERIAL_OUT
 	printf("%c", asciinumber);
 #endif
-	if (rows == 4 and colums == 20)fail = -4; /// to fix the library problem with 4*16 display http://forum.arduino.cc/index.php/topic,14604.0.html
-	if (lcdindex > colums-1){
+	if (rows == 4 and colums == 20) fail = -4; /// to fix the library problem with 4*16 display http://forum.arduino.cc/index.php/topic,14604.0.html
+	if (lcdindex > colums - 1){
 		lcdindex = 0;
 		if (rows == 4){
 			for (int i = 0; i <= colums - 1 ; i++){
-				//ssd1306_drawchar_sz(i * FONT_WIDTH ,(rows - 3) * 16 , line2[i], 1, fontsize_16x16);
-				tft_set_cursor(i * FONT_WIDTH ,(rows - 3) * 16);
+				tft_set_cursor(i * FONT_WIDTH ,(rows - 3) * 20);
 				tft_print_char(line2[i], 2);
 
 				line2[i] = line1[i];
 			}
 		}
 		for (int i = 0; i <= colums - 1 ; i++){
-			//ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 2) * 16 , line1[i], 1, fontsize_16x16);
-			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 2) * 16);
+			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 2) * 20);
 			tft_print_char(line1[i], 2);
-			//ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 1) * 16 , 32, 1, fontsize_16x16);
-			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 1) * 16 );
+			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 1) * 20);
 			tft_print_char(32, 2);
 		}
  	}
-	line1[lcdindex]=asciinumber;
-	//ssd1306_drawchar_sz((lcdindex + fail)* FONT_WIDTH ,(rows - 1) * 16 , asciinumber, 1, fontsize_16x16);
-	tft_set_cursor((lcdindex + fail) * FONT_WIDTH ,(rows - 1) * 16);
+	line1[lcdindex] = asciinumber;
+	tft_set_cursor((lcdindex + fail) * FONT_WIDTH ,(rows - 1) * 20);
 	tft_print_char(asciinumber, 2);
 	lcdindex += 1;
-	//ssd1306_refresh();
 	lastChar = asciinumber;
 }
 
@@ -212,21 +210,19 @@ void setup()
 	GPIO_pinMode(UART_PIN, GPIO_pinMode_O_pushPullMux, GPIO_Speed_10MHz);
 	RCC->APB2PCENR |= RCC_APB2Periph_AFIO;
 
-//#ifdef OLED_SPI
-//	ssd1306_spi_init();		// i2c Setup
-//#else
-//	ssd1306_i2c_init();		// i2c Setup
-//#endif
-//	ssd1306_init();			// SSD1306 Setup
-//	ssd1306_setbuf(0);		// Clear Screen
-//	ssd1306_drawstr_sz(0, 32, title1, 1, fontsize_8x8);
-//	ssd1306_refresh();
 	tft_init();
 	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
 	tft_set_cursor(0, 0);
+	tft_set_color(BLUE);
+	tft_set_cursor(0, 10);
+	tft_print(title1, FONT_SCALE_16X16);
+	tft_set_color(RED);
+	tft_set_cursor(0, 30);
+	tft_print(title2, FONT_SCALE_16X16);
+	tft_set_cursor(0, 50);
+	tft_set_color(BLUE);
+	tft_print(title3, FONT_SCALE_16X16)	;
 	tft_set_color(WHITE);
-	tft_set_cursor(16, 40);
-	tft_print(title1);
 
 	GPIO_ADCinit();
 	initGoertzel(speed);
@@ -244,8 +240,6 @@ int main()
 	SystemInit();			// ch32v003 sETUP
 	setup();				// gpio Setup;
 	Delay_Ms( 2000 );
-//	ssd1306_setbuf(0);	// Clear Screen
-//	ssd1306_refresh();
 	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
 
 	while(1) {
