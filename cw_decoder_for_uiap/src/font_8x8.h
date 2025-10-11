@@ -4,7 +4,8 @@
 /*                                            */
 /**********************************************/
 #define ANK
-const static unsigned char fontdata[] = {
+//const static unsigned char fontdata[] = {
+static const unsigned char font[] = {
 #ifdef ANK
   /* Code:0x00 */
   0x00, /*       */

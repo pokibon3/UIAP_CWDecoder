@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 #include <stdlib.h> 
+#include <string.h>
 //#include <math.h>
 #include "goertzel.h"
 #include "docode.h"
@@ -153,7 +154,7 @@ void printascii(int16_t asciinumber)
 			for (int i = 0; i <= colums - 1 ; i++){
 				//ssd1306_drawchar_sz(i * FONT_WIDTH ,(rows - 3) * 16 , line2[i], 1, fontsize_16x16);
 				tft_set_cursor(i * FONT_WIDTH ,(rows - 3) * 16);
-				tft_print_char(line2[i]);
+				tft_print_char(line2[i], 2);
 
 				line2[i] = line1[i];
 			}
@@ -161,16 +162,16 @@ void printascii(int16_t asciinumber)
 		for (int i = 0; i <= colums - 1 ; i++){
 			//ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 2) * 16 , line1[i], 1, fontsize_16x16);
 			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 2) * 16);
-			tft_print_char(line1[i]);
+			tft_print_char(line1[i], 2);
 			//ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 1) * 16 , 32, 1, fontsize_16x16);
 			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 1) * 16 );
-			tft_print_char(32);
+			tft_print_char(32, 2);
 		}
  	}
 	line1[lcdindex]=asciinumber;
 	//ssd1306_drawchar_sz((lcdindex + fail)* FONT_WIDTH ,(rows - 1) * 16 , asciinumber, 1, fontsize_16x16);
 	tft_set_cursor((lcdindex + fail) * FONT_WIDTH ,(rows - 1) * 16);
-	tft_print_char(asciinumber);
+	tft_print_char(asciinumber, 2);
 	lcdindex += 1;
 	//ssd1306_refresh();
 	lastChar = asciinumber;
@@ -224,9 +225,9 @@ void setup()
 	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
 	tft_set_cursor(0, 0);
 	tft_set_color(WHITE);
-	tft_set_cursor(0, 16);
+	tft_set_cursor(16, 40);
 	tft_print(title1);
-	
+
 	GPIO_ADCinit();
 	initGoertzel(speed);
 	sampling_period_us = 1000000 / SAMPLING_FREQUENCY;

@@ -21,8 +21,8 @@
     #include "ch32v003fun.h"
 //#endif
 
-#include "font5x7.h"
-
+//#include "font5x7.h"
+#include "fontk_8x8.h"
 // CH32V003 Pin Definitions
 #define PIN_RESET 7  // PC2  -> PC7
 #define PIN_DC    0  // PC3  -> PD0
@@ -95,14 +95,15 @@
 #define ST7735_COLMOD_16_BPP 0x05  // 101 - 16-bit/pixel
 
 // 5x7 Font
-#define FONT_WIDTH  5  // Font width
-#define FONT_HEIGHT 7  // Font height
+#define FONT_WIDTH  8  // Font width
+#define FONT_HEIGHT 8  // Font height
 
 static uint16_t _cursor_x                  = 0;
 static uint16_t _cursor_y                  = 0;      // Cursor position (x, y)
 static uint16_t _color                     = WHITE;  // Color
 static uint16_t _bg_color                  = BLACK;  // Background color
-static uint8_t  _buffer[ST7735_WIDTH << 1] = {0};    // DMA buffer, long enough to fill a row.
+//static uint8_t  _buffer[ST7735_WIDTH << 1] = {0};    // DMA buffer, long enough to fill a row.
+static uint8_t  _buffer[512] = {0};    // DMA buffer, long enough to fill a row.
 
 /// \brief Initialize ST7735
 /// \details Configure SPI, DMA, and RESET/DC/CS lines.
@@ -328,10 +329,11 @@ static void tft_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 /// \brief Print a Character
 /// \param c Character to print
 /// \details DMA accelerated.
+/*
 void tft_print_char(char c)
 {
-    const unsigned char* start = &font[c + (c << 2)];
-
+//    const unsigned char* start = &font[c + (c << 2)];
+    const unsigned char* start = &font[(c << 3)];
     uint16_t sz = 0;
     for (uint8_t i = 0; i < FONT_HEIGHT; i++)
     {
@@ -356,14 +358,65 @@ void tft_print_char(char c)
     SPI_send_DMA(_buffer, sz, 1);
     END_WRITE();
 }
+*/
+
+
+// _buffer は (FONT_WIDTH * FONT_HEIGHT * font_scale * font_scale * 2) バイト以上必要
+// 例: 最大2倍なら 8*8*2*2*2 = 512 バイト
+void tft_print_char(char c, uint8_t font_scale)
+{
+    if (font_scale < 1) font_scale = 1;
+    if (font_scale > 2) font_scale = 2;
+
+    const uint8_t* start = &font[((uint8_t)c) << 3]; // 8bytes/char
+    const uint8_t s = font_scale;
+
+    const uint16_t out_w = FONT_WIDTH  * s; // 8 or 16
+    const uint16_t out_h = FONT_HEIGHT * s; // 8 or 16
+
+    uint32_t sz = 0;
+
+    // フォントは列方向に1bit縦8ドット想定：start[j] のビット i を読む
+    for (uint8_t i = 0; i < FONT_HEIGHT; i++)
+    {
+        const uint8_t colbits = (uint8_t)(1U << i);
+
+        // 縦方向の拡大（各スキャンラインを s 回繰り返す）
+        for (uint8_t sy = 0; sy < s; sy++)
+        {
+            for (uint8_t j = 0; j < FONT_WIDTH; j++)
+            {
+                const uint8_t on = (start[j] & colbits) ? 1 : 0;
+                const uint16_t color = on ? _color : _bg_color;
+
+                // 横方向の拡大（各ドットを s 回複製）
+                for (uint8_t sx = 0; sx < s; sx++)
+                {
+                    _buffer[sz++] = (uint8_t)(color >> 8);
+                    _buffer[sz++] = (uint8_t)(color & 0xFF);
+                }
+            }
+        }
+    }
+
+    START_WRITE();
+    tft_set_window(_cursor_x, _cursor_y,
+                   _cursor_x + out_w - 1, _cursor_y + out_h - 1);
+    DATA_MODE();
+    SPI_send_DMA(_buffer, sz, 1);
+    END_WRITE();
+
+    // 連続描画するならカーソルを進めたい場合はここで：
+    // _cursor_x += out_w;
+}
 
 /// \brief Print a String
 /// \param str String to print
-void tft_print(const char* str)
+void tft_print(const char* str, uint8_t scale)
 {
     while (*str)
     {
-        tft_print_char(*str++);
+        tft_print_char(*str++, scale);
         _cursor_x += FONT_WIDTH + 1;
     }
 }

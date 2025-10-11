@@ -69,11 +69,11 @@ void tft_set_background_color(uint16_t color);
 
 /// \brief Print a Character
 /// \param c Character to print
-void tft_print_char(char c);
+void tft_print_char(char c, uint8_t scale = 1);
 
 /// \brief Print a String
 /// \param str String to print
-void tft_print(const char* str);
+void tft_print(const char* str, uint8_t scale = 1);
 
 /// \brief Print an Integer
 /// \param num Number to print
