@@ -7,7 +7,7 @@
 //
 //  Hardware Connections
 //
-//	UIAP	CH32V003  	SSD1306(SPI)	SW		MIC    	 
+//	UIAP	CH32V003  	SSD1306(SPI)	SW		MIC    	 ETC.
 //	10	    PD0            DC
 //	 8      PC6            MOSI
 //   9      PC7            RES
@@ -17,15 +17,15 @@
 //	A2      PC4                         SW2
 //  A3      PD2							SW3
 //	A0		PA2									OUT
+//  A6		PD6											TEST
 //	3.3V                  3.3V           		VCC(Via 78L33 3.3V)
 //  GND                    GND          		GND
 //
-#define OLED_SPI
+//#define OLED_SPI
 #define SERIAL_OUT
 
 #include <stdio.h>
 #include <stdlib.h> 
-#include <string.h>
 //#include <math.h>
 #include "goertzel.h"
 #include "docode.h"
@@ -34,14 +34,13 @@
 // what type of OLED - uncomment just one
 //#define SSD1306_64X32
 //#define SSD1306_128X32
-//#define SSD1306_128X64
-//#ifdef OLED_SPI
-//#include "ssd1306_spi.h"
-//#else
-//#include "ssd1306_i2c.h"
-//#endif
-//#include "ssd1306.h"
-#include "st7735.h"
+#define SSD1306_128X64
+#ifdef OLED_SPI
+#include "ssd1306_spi.h"
+#else
+#include "ssd1306_i2c.h"
+#endif
+#include "ssd1306.h"
 
 #define GPIO_ADC_MUX_DELAY 100
 #define GPIO_ADC_sampletime GPIO_ADC_sampletime_43cy
@@ -57,10 +56,15 @@
 #define ADC_PIN GPIOv_from_PORT_PIN(GPIO_port_A, 2)		// for uiap
 #define LED_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 0)		// for uiap
 #define UART_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 5)
+#define TEST_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 6)
+
+#define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
+#define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
+
+
 
 #define SAMPLES 48 
 #define SAMPLING_FREQUENCY 8000
-#define FONT_WIDTH 12
 
 // function prototype (declaration), definition in "ch32v003fun.c"
 extern "C" int mini_snprintf(char* buffer, unsigned int buffer_len, const char *fmt, ...);
@@ -68,10 +72,7 @@ extern "C" int mini_snprintf(char* buffer, unsigned int buffer_len, const char *
 static uint16_t sampling_period_us;
 static int16_t 	morseData[SAMPLES];
 
-static char title1[]   = " CW Decoder  ";
-static char title2[]   = "  for UIAP   ";
-static char title3[]   = " Version 1.1 ";
-
+static char title1[]   = "CW Decoder V1.1u";
 static uint16_t magnitudelimit = 100;
 static uint16_t magnitudelimit_low = 100;
 static uint16_t realstate = low;
@@ -120,16 +121,13 @@ void updateinfolinelcd()
 	} else {
 		mode = "JP";
 	}
-	mini_snprintf(buf, sizeof(buf), "%2dWPM %s%s", w, mode, tone[speed]);
-	tft_set_cursor(0, 0);
-	tft_set_color(BLUE);
-	tft_print(buf, FONT_SCALE_16X16);
-	tft_draw_line(0, 17, 159, 17, GREEN);
-	tft_set_color(WHITE);
+	mini_snprintf(buf, sizeof(buf), "%2d WPM[%s%sHz]", w, mode, tone[speed]);
+	ssd1306_drawstr_sz(0 ,2 , buf, 1, fontsize_8x8);
+	ssd1306_drawFastHLine(0, 13, 128, 1);
+//	ssd1306_refresh();
 }
 
-
-const int colums = 13; /// have to be 16 or 20
+const int colums = 10; /// have to be 16 or 20
 const int rows = 4;  /// have to be 2 or 4
 
 int lcdindex = 0;
@@ -141,6 +139,7 @@ uint8_t lastChar = 0;
 // one a time so we can generate   //
 // special letters                 //
 /////////////////////////////////////
+#define FONT_WIDTH 12
 void printascii(int16_t asciinumber)
 {
 	int fail = 0;
@@ -150,28 +149,24 @@ void printascii(int16_t asciinumber)
 #ifdef SERIAL_OUT
 	printf("%c", asciinumber);
 #endif
-	if (rows == 4 and colums == 20) fail = -4; /// to fix the library problem with 4*16 display http://forum.arduino.cc/index.php/topic,14604.0.html
-	if (lcdindex > colums - 1){
+	if (rows == 4 and colums == 20)fail = -4; /// to fix the library problem with 4*16 display http://forum.arduino.cc/index.php/topic,14604.0.html
+	if (lcdindex > colums-1){
 		lcdindex = 0;
 		if (rows == 4){
 			for (int i = 0; i <= colums - 1 ; i++){
-				tft_set_cursor(i * FONT_WIDTH ,(rows - 3) * 20);
-				tft_print_char(line2[i], 2);
-
-				line2[i] = line1[i];
+				ssd1306_drawchar_sz(i * FONT_WIDTH ,(rows - 3) * 16 , line2[i], 1, fontsize_16x16);
+				line2[i]=line1[i];
 			}
 		}
-		for (int i = 0; i <= colums - 1 ; i++){
-			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 2) * 20);
-			tft_print_char(line1[i], 2);
-			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 1) * 20);
-			tft_print_char(32, 2);
+		for (int i = 0; i <= colums-1 ; i++){
+			ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 2) * 16 , line1[i], 1, fontsize_16x16);
+			ssd1306_drawchar_sz((i + fail)* FONT_WIDTH ,(rows - 1) * 16 , 32, 1, fontsize_16x16);
 		}
  	}
-	line1[lcdindex] = asciinumber;
-	tft_set_cursor((lcdindex + fail) * FONT_WIDTH ,(rows - 1) * 20);
-	tft_print_char(asciinumber, 2);
+	line1[lcdindex]=asciinumber;
+	ssd1306_drawchar_sz((lcdindex + fail)* FONT_WIDTH ,(rows - 1) * 16 , asciinumber, 1, fontsize_16x16);
 	lcdindex += 1;
+	ssd1306_refresh();
 	lastChar = asciinumber;
 }
 
@@ -207,23 +202,21 @@ void setup()
 	GPIO_pinMode(LED_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);
 	GPIO_digitalWrite(LED_PIN, low);
 
+	GPIO_pinMode(TEST_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);
+	GPIO_digitalWrite(TEST_PIN, low);
+
 	GPIO_pinMode(UART_PIN, GPIO_pinMode_O_pushPullMux, GPIO_Speed_10MHz);
 	RCC->APB2PCENR |= RCC_APB2Periph_AFIO;
 
-	tft_init();
-	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-	tft_set_cursor(0, 0);
-	tft_set_color(BLUE);
-	tft_set_cursor(0, 10);
-	tft_print(title1, FONT_SCALE_16X16);
-	tft_set_color(RED);
-	tft_set_cursor(0, 30);
-	tft_print(title2, FONT_SCALE_16X16);
-	tft_set_cursor(0, 50);
-	tft_set_color(GREEN);
-	tft_print(title3, FONT_SCALE_16X16)	;
-	tft_set_color(WHITE);
-
+#ifdef OLED_SPI
+	ssd1306_spi_init();		// i2c Setup
+#else
+	ssd1306_i2c_init();		// i2c Setup
+#endif
+	ssd1306_init();			// SSD1306 Setup
+	ssd1306_setbuf(0);		// Clear Screen
+	ssd1306_drawstr_sz(0, 32, title1, 1, fontsize_8x8);
+	ssd1306_refresh();
 	GPIO_ADCinit();
 	initGoertzel(speed);
 	sampling_period_us = 1000000 / SAMPLING_FREQUENCY;
@@ -233,16 +226,21 @@ void setup()
 	}           
 }
 
+//
+// main loop
+//
 int main()
 {
+TEST_LOW
 	int32_t magnitude;
 
 	SystemInit();			// ch32v003 sETUP
 	setup();				// gpio Setup;
 	Delay_Ms( 2000 );
-	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-
+	ssd1306_setbuf(0);	// Clear Screen
+	ssd1306_refresh();
 	while(1) {
+TEST_HIGH
  	  	int16_t ave = 0;
 
 		check_input();
@@ -257,10 +255,10 @@ int main()
 			morseData[i] -= ave;
 		}
 		// calc goertzel
+TEST_LOW
 		magnitude = goertzel(morseData, SAMPLES) / 400;
-//		tft_draw_line(159, 79, 159, 0 , BLACK);
-//		tft_draw_line(159, 79, 159, 80 - magnitude / 20 , YELLOW);
-#ifndef SERIAL_OUT
+//TEST_HIGH
+		#ifndef SERIAL_OUT
 		printf("mag = %d\n", magnitude);
 #endif
 		/////////////////////////////////////////////////////////// 
@@ -381,7 +379,9 @@ int main()
 		//////////////////////////////////
 		// the end of main loop clean up//
 		/////////////////////////////////
+//TEST_HIGH
 		updateinfolinelcd();
+//TEST_LOW
 		realstatebefore = realstate;
 		lasthighduration = highduration;
 		filteredstatebefore = filteredstate;
