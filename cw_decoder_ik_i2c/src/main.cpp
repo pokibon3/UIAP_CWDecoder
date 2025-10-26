@@ -61,8 +61,6 @@
 #define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
 #define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
 
-
-
 #define SAMPLES 48 
 #define SAMPLING_FREQUENCY 8000
 

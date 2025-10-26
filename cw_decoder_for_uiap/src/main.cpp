@@ -7,7 +7,7 @@
 //
 //  Hardware Connections
 //
-//	UIAP	CH32V003  	SSD1306(SPI)	SW		MIC    	 
+//	UIAP	CH32V003  	SSD1306(SPI)	SW		MIC    	 ETC.
 //	10	    PD0            DC
 //	 8      PC6            MOSI
 //   9      PC7            RES
@@ -17,11 +17,12 @@
 //	A2      PC4                         SW2
 //  A3      PD2							SW3
 //	A0		PA2									OUT
+//  A6		PD6											TEST
 //	3.3V                  3.3V           		VCC(Via 78L33 3.3V)
 //  GND                    GND          		GND
 //
 #define OLED_SPI
-#define SERIAL_OUT
+//#define SERIAL_OUT
 
 #include <stdio.h>
 #include <stdlib.h> 
@@ -57,6 +58,10 @@
 #define ADC_PIN GPIOv_from_PORT_PIN(GPIO_port_A, 2)		// for uiap
 #define LED_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 0)		// for uiap
 #define UART_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 5)
+#define TEST_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 6)
+
+#define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
+#define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
 
 #define SAMPLES 48 
 #define SAMPLING_FREQUENCY 8000
@@ -136,11 +141,10 @@ int lcdindex = 0;
 uint8_t line1[colums];
 uint8_t line2[colums];
 uint8_t lastChar = 0;
-/////////////////////////////////////
-// print the ascii code to the lcd //
-// one a time so we can generate   //
-// special letters                 //
-/////////////////////////////////////
+
+//==================================================================
+//	printascii : print the ascii code to the lcd
+//==================================================================
 void printascii(int16_t asciinumber)
 {
 	int fail = 0;
@@ -175,6 +179,9 @@ void printascii(int16_t asciinumber)
 	lastChar = asciinumber;
 }
 
+//==================================================================
+//	chack switch
+//==================================================================
 void check_input() 
 {
 	if (!GPIO_digitalRead(SW2_PIN)) {
@@ -191,7 +198,9 @@ void check_input()
 	}
 }
 
-
+//==================================================================
+//	setup
+//==================================================================
 void setup()
 {
     // 各GPIOの有効化
@@ -206,6 +215,9 @@ void setup()
     
 	GPIO_pinMode(LED_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);
 	GPIO_digitalWrite(LED_PIN, low);
+
+	GPIO_pinMode(TEST_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);
+	GPIO_digitalWrite(TEST_PIN, low);
 
 	GPIO_pinMode(UART_PIN, GPIO_pinMode_O_pushPullMux, GPIO_Speed_10MHz);
 	RCC->APB2PCENR |= RCC_APB2Periph_AFIO;
@@ -233,6 +245,9 @@ void setup()
 	}           
 }
 
+//==================================================================
+//	main
+//==================================================================
 int main()
 {
 	int32_t magnitude;
@@ -243,6 +258,7 @@ int main()
 	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
 
 	while(1) {
+TEST_HIGH
  	  	int16_t ave = 0;
 
 		check_input();
@@ -256,11 +272,17 @@ int main()
 		for (int i = 0; i < SAMPLES; i++) {
 			morseData[i] -= ave;
 		}
+TEST_LOW
+
 		// calc goertzel
 		magnitude = goertzel(morseData, SAMPLES) / 400;
-//		tft_draw_line(159, 79, 159, 0 , BLACK);
-//		tft_draw_line(159, 79, 159, 80 - magnitude / 20 , YELLOW);
-#ifndef SERIAL_OUT
+		tft_draw_line(159, 79, 159, 0 , BLACK);
+		int16_t w = 80 - magnitude / 50;
+		if (w < 0) w = 0;
+		if (w > 80) w = 80;
+
+		tft_draw_line(159, 79, 159, w , YELLOW);
+#ifdef SERIAL_OUT
 		printf("mag = %d\n", magnitude);
 #endif
 		/////////////////////////////////////////////////////////// 
