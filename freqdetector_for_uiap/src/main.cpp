@@ -74,8 +74,12 @@ int freqCounter() {
 	uint16_t oldFreequency = 0;
 	char buf[16];
 
-	tft_draw_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLUE);
-	tft_draw_line(0, 19, ST7735_WIDTH, 19, BLUE);
+	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
+	tft_draw_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT - 8, BLUE);
+//	tft_draw_line(0, 19, ST7735_WIDTH, 19, BLUE);
+	tft_set_cursor(0, 73);
+	tft_set_color(BLUE);
+	tft_print("0Hz      1KHz       2KHz", FONT_SCALE_8X8);
 
 	while(1) {
 		uint16_t ave = 0;
@@ -104,14 +108,18 @@ TEST_LOW
 			vReal[i] = abs(vReal[i]) + abs(vImag[i]); // Magnitude calculation without sqrt
 			//vReal[i] = sqrt(vReal[i] * vReal[i] + vImag[i] * vImag[i]);
 		}
-		/* Find Peak */
+		// clear display area
 		uint8_t maxIndex = 0;
 		uint8_t maxValue = 0;
-		tft_fill_rect(1, 20, ST7735_WIDTH - 2, 59, BLACK);
-		for (int i = 1; i < SAMPLES / 2; i++) {
-			int8_t val = (vReal[i] * SCALE < 58) ? vReal[i] * SCALE : 58;
-			tft_draw_line(i * 2,     78, i * 2,     78 - val, WHITE);
-			tft_draw_line(i * 2 + 1, 78, i * 2 + 1, 78 - val, WHITE);
+		tft_fill_rect(1, 19, ST7735_WIDTH - 2, 51, BLACK);
+		tft_draw_line(64,  1,  64, 71, DARKBLUE); // 1.0kHz line
+		tft_draw_line(128, 1, 128, 71, DARKBLUE); // 2.0kHz line
+		// draw bar and find peak
+		for (int i = 1; i < (((SAMPLES / 2) < 52) ? SAMPLES /2 : 52); i++) {
+			int8_t val = (vReal[i] * SCALE < 50) ? vReal[i] * SCALE : 50;
+			tft_draw_line(i * 3,     70       , i * 3,     70 - val, WHITE);
+			tft_draw_line(i * 3 + 1, 70 - val , i * 3 + 2, 70 - val, WHITE);
+			tft_draw_line(i * 3 + 3, 70       , i * 3 + 3, 70 - val, WHITE);
 			if (vReal[i] > maxValue) {
 				maxValue = vReal[i];
 				maxIndex = i;
@@ -121,13 +129,13 @@ TEST_LOW
 		peakFrequency = (SAMPLING_FREQUENCY / SAMPLES) * maxIndex;
 		if (peakFrequency != oldFreequency) {
 			if (maxValue >= 4 ) {
-				mini_snprintf(buf, sizeof(buf), " %4dHz", peakFrequency + SAMPLING_FREQUENCY / SAMPLES / 2);
+				mini_snprintf(buf, sizeof(buf), "%4dHz", peakFrequency + SAMPLING_FREQUENCY / SAMPLES / 2);
 			} else {
-				strcpy(buf, "    0Hz");
+				strcpy(buf, "   0Hz");
 			}
-			tft_set_cursor ((6 - strlen(buf)) * 16 + 48, 3);
+			tft_set_cursor ((6 - strlen(buf)) * 12 + 82, 2);
 			tft_set_color(YELLOW);
-			tft_fill_rect(1, 1, ST7735_WIDTH - 2, 18, BLACK);
+			tft_fill_rect(80, 1, ST7735_WIDTH - 82, 18, BLACK);
 			tft_print(buf, FONT_SCALE_16X16);
 			oldFreequency = peakFrequency;
 		}
