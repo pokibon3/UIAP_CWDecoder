@@ -25,7 +25,7 @@
 //#define SERIAL_OUT
 
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <string.h>
 //#include <math.h>
 #include "goertzel.h"
@@ -63,9 +63,10 @@
 #define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
 #define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
 
-#define SAMPLES 48 
+#define SAMPLES 48
 #define SAMPLING_FREQUENCY 8000
 #define FONT_WIDTH 12
+#define LINE_HEIGHT 20
 
 // function prototype (declaration), definition in "ch32v003fun.c"
 extern "C" int mini_snprintf(char* buffer, unsigned int buffer_len, const char *fmt, ...);
@@ -90,7 +91,7 @@ static uint32_t hightimesavg;
 static uint32_t startttimelow;
 static uint32_t lowduration;
 static uint32_t laststarttime = 0;
-#define  nbtime 	6  /// ms noise blanker         
+#define  nbtime 	6  /// ms noise blanker
 
 static char code[20];
 static uint16_t stop = low;
@@ -105,10 +106,9 @@ const char *tone[] = {
 	"1000"
 };
 
-/////////////////////////////////////
-// here we update the upper line   //
-// with the speed.                 //
-/////////////////////////////////////
+//==================================================================
+//	updateinfolinelcd() : print info field
+//==================================================================
 void updateinfolinelcd()
 {
 	char buf[17];
@@ -135,7 +135,6 @@ void updateinfolinelcd()
 
 
 const int colums = 13; /// have to be 16 or 20
-const int rows = 4;  /// have to be 2 or 4
 
 int lcdindex = 0;
 uint8_t line1[colums];
@@ -147,34 +146,29 @@ uint8_t lastChar = 0;
 //==================================================================
 void printascii(int16_t asciinumber)
 {
-	int fail = 0;
-
 	if (asciinumber == 0) return;
 	if (lastChar == 32 && asciinumber == 32) return;
 #ifdef SERIAL_OUT
 	printf("%c", asciinumber);
 #endif
-	if (rows == 4 and colums == 20) fail = -4; /// to fix the library problem with 4*16 display http://forum.arduino.cc/index.php/topic,14604.0.html
 	if (lcdindex > colums - 1){
 		lcdindex = 0;
-		if (rows == 4){
-			for (int i = 0; i <= colums - 1 ; i++){
-				tft_set_cursor(i * FONT_WIDTH ,(rows - 3) * 20);
-				tft_print_char(line2[i], 2);
+		for (int i = 0; i <= colums - 1 ; i++){
+			tft_set_cursor(i * FONT_WIDTH , LINE_HEIGHT);
+			tft_print_char(line2[i], FONT_SCALE_16X16);
 
-				line2[i] = line1[i];
-			}
+			line2[i] = line1[i];
 		}
 		for (int i = 0; i <= colums - 1 ; i++){
-			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 2) * 20);
-			tft_print_char(line1[i], 2);
-			tft_set_cursor((i + fail) * FONT_WIDTH ,(rows - 1) * 20);
-			tft_print_char(32, 2);
+			tft_set_cursor(i * FONT_WIDTH , LINE_HEIGHT * 2);
+			tft_print_char(line1[i], FONT_SCALE_16X16);
+			tft_set_cursor(i * FONT_WIDTH , LINE_HEIGHT * 3);
+			tft_print_char(32, FONT_SCALE_16X16);
 		}
  	}
 	line1[lcdindex] = asciinumber;
-	tft_set_cursor((lcdindex + fail) * FONT_WIDTH ,(rows - 1) * 20);
-	tft_print_char(asciinumber, 2);
+	tft_set_cursor(lcdindex * FONT_WIDTH , LINE_HEIGHT * 3);
+	tft_print_char(asciinumber, FONT_SCALE_16X16);
 	lcdindex += 1;
 	lastChar = asciinumber;
 }
@@ -182,7 +176,7 @@ void printascii(int16_t asciinumber)
 //==================================================================
 //	chack switch
 //==================================================================
-void check_input() 
+void check_input()
 {
 	if (!GPIO_digitalRead(SW2_PIN)) {
 		speed -= 1;
@@ -212,7 +206,7 @@ void setup()
     GPIO_pinMode(SW2_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
     GPIO_pinMode(SW3_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
     GPIO_pinMode(ADC_PIN, GPIO_pinMode_I_analog, GPIO_Speed_10MHz);
-    
+
 	GPIO_pinMode(LED_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);
 	GPIO_digitalWrite(LED_PIN, low);
 
@@ -242,7 +236,7 @@ void setup()
 	for (int i = 0; i < colums; i++){
     	line1[i] = 32;
 		line2[i] = 32;
-	}           
+	}
 }
 
 //==================================================================
@@ -285,7 +279,7 @@ TEST_LOW
 #ifdef SERIAL_OUT
 		printf("mag = %d\n", magnitude);
 #endif
-		/////////////////////////////////////////////////////////// 
+		///////////////////////////////////////////////////////////
 		// here we will try to set the magnitude limit automatic //
 		///////////////////////////////////////////////////////////
   		if (magnitude > magnitudelimit_low){
@@ -298,13 +292,13 @@ TEST_LOW
 		////////////////////////////////////
 		// now we check for the magnitude //
 		////////////////////////////////////
-		if(magnitude > magnitudelimit*0.6) {  // just to have some space up 
-     		realstate = high; 
+		if(magnitude > magnitudelimit*0.6) {  // just to have some space up
+     		realstate = high;
 		} else {
-    		realstate = low; 
+    		realstate = low;
 		}
 
-		///////////////////////////////////////////////////// 
+		/////////////////////////////////////////////////////
 		// here we clean up the state with a noise blanker //
 		/////////////////////////////////////////////////////
 		if (realstate != realstatebefore){
@@ -348,7 +342,7 @@ TEST_LOW
 					strcat(code,".");
 //					printf(".");
 				}
-				if (highduration > (hightimesavg*2) && highduration < (hightimesavg*6)){ 
+				if (highduration > (hightimesavg*2) && highduration < (hightimesavg*6)){
 					strcat(code,"-");
 //					printf("-");
 					wpm = (wpm + (1200/((highduration)/3)))/2;  //// the most precise we can do ;o)
@@ -357,12 +351,12 @@ TEST_LOW
 		}
 
 		if (filteredstate == high){  //// we did end a LOW
-	
+
 			int16_t lacktime = 8;
-			if(wpm > 25)lacktime=10; ///  when high speeds we have to have a little more pause before new letter or new word 
+			if(wpm > 25)lacktime=10; ///  when high speeds we have to have a little more pause before new letter or new word
 			if(wpm > 30)lacktime=12;
 			if(wpm > 35)lacktime=15;
-		
+
 			if (lowduration > ((hightimesavg * (2 * lacktime) / 10)) && lowduration < (hightimesavg * (5 * lacktime)) / 10){ // letter space
 				if (strlen(code) > 0) {
 					printascii(docode(code, &sw));
@@ -394,12 +388,12 @@ TEST_LOW
 		// we will turn on and off the LED //
 		// and the speaker                 //
 		/////////////////////////////////////
-		if(filteredstate == high){ 
+		if(filteredstate == high){
 			GPIO_digitalWrite(LED_PIN, high);
 		} else {
 			GPIO_digitalWrite(LED_PIN, low);
 		}
- 
+
 		//////////////////////////////////
 		// the end of main loop clean up//
 		/////////////////////////////////
