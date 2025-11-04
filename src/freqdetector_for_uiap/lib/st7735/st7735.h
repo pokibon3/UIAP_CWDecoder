@@ -44,7 +44,6 @@
 #define SKYBLUE     RGB(0, 204, 255)
 #define DARKBLUE    RGB(0, 0, 192)
 #define GREEN       RGB(0, 255, 0)
-#define DARKGREEN   RGB(0, 192, 0)
 #define CYAN        RGB(0, 255, 255)
 #define RED         RGB(255, 0, 0)
 #define MAGENTA     RGB(255, 0, 255)

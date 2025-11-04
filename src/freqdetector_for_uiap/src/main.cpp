@@ -28,158 +28,14 @@
 #include <stdlib.h>
 #include <string.h>
 //#include <math.h>
-#include "fix_fft.h"
+#include "common.h"
+#include "frequencyDetector.h"
 #include "ch32v003fun.h"
-
 #include "st7735.h"
-
-#define GPIO_ADC_MUX_DELAY 100
-#define GPIO_ADC_sampletime GPIO_ADC_sampletime_43cy
-#define SCALE 3
 #include "ch32v003_GPIO_branchless.h"
 
-#define micros() (SysTick->CNT / DELAY_US_TIME)
-#define millis() (SysTick->CNT / DELAY_MS_TIME)
-
-//#define LED_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 5)
-#define SW1_PIN GPIOv_from_PORT_PIN(GPIO_port_A, 1)		// for uiap
-#define SW2_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 4)		// for uiap
-#define SW3_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 2)
-#define ADC_PIN GPIOv_from_PORT_PIN(GPIO_port_A, 2)		// for uiap
-#define LED_PIN GPIOv_from_PORT_PIN(GPIO_port_C, 0)		// for uiap
-#define UART_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 5)
-#define TEST_PIN GPIOv_from_PORT_PIN(GPIO_port_D, 6)
-
-#define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
-#define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
-
-#define SAMPLES 128
-#define SAMPLING_FREQUENCY 6000	// Hz	+10%
 
 uint16_t sampling_period_us;
-int8_t vReal[SAMPLES];
-int8_t vImag[SAMPLES];
-static char title1[] = "Freq.Detector";
-static char title2[] = " Version 1.0u";
-
-// function prototype (declaration), definition in "ch32v003fun.c"
-extern "C" int mini_snprintf(char* buffer, unsigned int buffer_len, const char *fmt, ...);
-
-
-//==================================================================
-//  adc and fft for freq counter
-//==================================================================
-int freqCounter() {
-	uint16_t peakFrequency = 0;
-	uint16_t oldFreequency = 0;
-	char buf[16];
-
-	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-	tft_draw_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT - 8, BLUE);
-//	tft_draw_line(0, 19, ST7735_WIDTH, 19, BLUE);
-	tft_set_cursor(0, 73);
-	tft_set_color(BLUE);
-	tft_print("0Hz      1KHz       2KHz", FONT_SCALE_8X8);
-
-	while(1) {
-		uint16_t ave = 0;
-		uint8_t  val = 0;
-		unsigned long t = 0;
-TEST_HIGH
-		for (int i = 0; i < SAMPLES; i++) {
-			t = micros();
-			val = (uint8_t)(GPIO_analogRead(GPIO_Ain0_A2) >> 2);
-			ave += val;
-			vImag[i] = val;
-			while ((micros() - t) < sampling_period_us);
-		}
-TEST_LOW
-		ave = ave / SAMPLES;
-		//printf("ave = %d\n", ave);
-		for (int i = 0; i < SAMPLES; i++) {
-			vReal[i] = (int8_t)(vImag[i] - ave);
-			vImag[i] = 0; // Imaginary partは0に初期化
-		}
-//TEST_HIGH
-  		fix_fft((char *)vReal, (char *)vImag, 7, 0); // SAMPLES = 256なので、log2(SAMPLES) = 8
-//TEST_HIGH
-  		/* Magnitude Calculation */
-		for (int i = 0; i < SAMPLES / 2; i++) {
-			vReal[i] = abs(vReal[i]) + abs(vImag[i]); // Magnitude calculation without sqrt
-			//vReal[i] = sqrt(vReal[i] * vReal[i] + vImag[i] * vImag[i]);
-		}
-		// clear display area
-		uint8_t maxIndex = 0;
-		uint8_t maxValue = 0;
-		tft_fill_rect(1, 19, ST7735_WIDTH - 2, 51, BLACK);
-		tft_draw_line(64,  1,  64, 71, DARKBLUE); // 1.0kHz line
-		tft_draw_line(128, 1, 128, 71, DARKBLUE); // 2.0kHz line
-		// draw bar and find peak
-		for (int i = 1; i < (((SAMPLES / 2) < 52) ? SAMPLES /2 : 52); i++) {
-			int8_t val = (vReal[i] * SCALE < 50) ? vReal[i] * SCALE : 50;
-			tft_draw_line(i * 3,     70       , i * 3,     70 - val, WHITE);
-			tft_draw_line(i * 3 + 1, 70 - val , i * 3 + 2, 70 - val, WHITE);
-			tft_draw_line(i * 3 + 3, 70       , i * 3 + 3, 70 - val, WHITE);
-			if (vReal[i] > maxValue) {
-				maxValue = vReal[i];
-				maxIndex = i;
-			}
-		}
-		// disp freqeuncy
-		peakFrequency = (SAMPLING_FREQUENCY / SAMPLES) * maxIndex;
-		if (peakFrequency != oldFreequency) {
-			if (maxValue >= 4 ) {
-				mini_snprintf(buf, sizeof(buf), "%4dHz", peakFrequency + SAMPLING_FREQUENCY / SAMPLES / 2);
-			} else {
-				strcpy(buf, "   0Hz");
-			}
-			tft_set_cursor ((6 - strlen(buf)) * 12 + 82, 2);
-			tft_set_color(YELLOW);
-			tft_fill_rect(80, 1, ST7735_WIDTH - 82, 18, BLACK);
-			tft_print(buf, FONT_SCALE_16X16);
-			oldFreequency = peakFrequency;
-		}
-//TEST_LOW
-	}
-}
-
-//==================================================================
-//	setup
-//==================================================================
-void setup()
-{
-    // 各GPIOの有効化
-    GPIO_port_enable(GPIO_port_A);
-    GPIO_port_enable(GPIO_port_C);
-    GPIO_port_enable(GPIO_port_D);
-    // 各ピンの設定
-    GPIO_pinMode(SW1_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
-    GPIO_pinMode(SW2_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
-    GPIO_pinMode(SW3_PIN, GPIO_pinMode_I_pullUp, GPIO_Speed_10MHz);
-    GPIO_pinMode(ADC_PIN, GPIO_pinMode_I_analog, GPIO_Speed_10MHz);
-
-	GPIO_pinMode(LED_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);
-	GPIO_digitalWrite(LED_PIN, low);
-
-	GPIO_pinMode(TEST_PIN, GPIO_pinMode_O_pushPull, GPIO_Speed_10MHz);
-	GPIO_digitalWrite(TEST_PIN, low);
-
-	GPIO_pinMode(UART_PIN, GPIO_pinMode_O_pushPullMux, GPIO_Speed_10MHz);
-	RCC->APB2PCENR |= RCC_APB2Periph_AFIO;
-
-	GPIO_ADCinit();
-	sampling_period_us = 900000L / SAMPLING_FREQUENCY; 
-
-	tft_init();
-	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-	tft_set_color(WHITE);
-	tft_set_cursor(0, 10);
-	tft_print(title1, FONT_SCALE_16X16);
-	tft_set_color(BLUE);
-	tft_set_cursor(0, 50);
-	tft_print(title2, FONT_SCALE_16X16);
-	Delay_Ms( 2000 );	
-}
 
 //==================================================================
 //	main
@@ -187,6 +43,7 @@ void setup()
 int main()
 {
 	SystemInit();			// ch32v003 Setup
-	setup();				// gpio Setup;
-	freqCounter();			// run freq counter
+	GPIO_setup();				// gpio Setup;
+	fd_setup();				// freq detector Setup
+	freqDetector();			// run freq counter
 }
