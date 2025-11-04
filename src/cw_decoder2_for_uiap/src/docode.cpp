@@ -1,3 +1,6 @@
+//
+//	CW Decoder
+//
 #include <stdint.h>
 #include <string.h>
 #include "docode.h"

@@ -1,5 +1,9 @@
-#include "ch32v003_GPIO_branchless.h"
+//
+//	CW Decoder Common functions
+//
+#include <stdint.h>
 #include "common.h"
+#include "ch32v003_GPIO_branchless.h"
 
 //==================================================================
 //	setup
@@ -28,3 +32,22 @@ int GPIO_setup()
 
     return 0;
 }
+
+//==================================================================
+//	chack switch
+//==================================================================
+int check_input()
+{
+    int ret = 0;
+	if (!GPIO_digitalRead(SW1_PIN)) {               // up sw
+        ret = 1;
+    } else if (!GPIO_digitalRead(SW3_PIN)) {        // mode sw
+        ret = 3;
+	} else if (!GPIO_digitalRead(SW2_PIN)) {        // mode sw
+        ret = 2;
+	} else {
+        ret = 0;
+    }
+    return ret;
+}
+

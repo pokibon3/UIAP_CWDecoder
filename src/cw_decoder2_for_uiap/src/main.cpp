@@ -1,9 +1,10 @@
 //
-//	freq detector Ver 1.0u
+//	CW Decoder Ver 2.0 for UIAPduino Pro Micro
 //
 //  2024.08.12 New Create
 //  2024.08.21 integer version
 //  2025.09.30 port to UIAPduino Pro Micro(CH32V003)
+//  2025.10.04 add freq detector
 //
 //  Hardware Connections
 //
@@ -22,28 +23,40 @@
 //  GND                    GND          		GND
 //
 
-//#define SERIAL_OUT
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <math.h>
 #include "common.h"
-#include "frequencyDetector.h"
 #include "ch32v003fun.h"
 #include "st7735.h"
-#include "ch32v003_GPIO_branchless.h"
-
+#include "cw_decoder.h"
+#include "frequencyDetector.h"
 
 uint16_t sampling_period_us;
+uint8_t  buf[BUFSIZE];
 
 //==================================================================
 //	main
 //==================================================================
 int main()
 {
-	SystemInit();			// ch32v003 Setup
+	int16_t *morseData;
+	int8_t *vReal;
+	int8_t *vImag;
+
+	vReal = (int8_t *)&buf[0];
+	vImag = (int8_t *)&buf[128];
+	morseData = (int16_t *)&buf[0];
+
+	SystemInit();				// ch32v003 Setup
 	GPIO_setup();				// gpio Setup;
-	fd_setup();				// freq detector Setup
-	freqDetector();			// run freq counter
+    tft_init();					// LCD init
+	while (1) {
+		cwd_setup();			// freq detector Setup
+		cwDecoder(morseData);	// run cw decoder
+		fd_setup();				// freq detector Setup
+		freqDetector(vReal, vImag);			// run freq counter
+	}
 }
+
+

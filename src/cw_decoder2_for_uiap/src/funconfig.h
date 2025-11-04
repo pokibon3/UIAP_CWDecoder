@@ -1,3 +1,6 @@
+//
+//	CH32V003 Fun Config Header
+//
 #ifndef _FUNCONFIG_H
 #define _FUNCONFIG_H
 
