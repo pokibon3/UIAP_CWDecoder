@@ -1,1 +1,0 @@
-int docode(char *code);
