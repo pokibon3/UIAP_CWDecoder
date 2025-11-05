@@ -24,7 +24,7 @@
 // タイトル文字列
 static char title1[]   = "Freq.Detector";
 static char title2[]   = "  for UIAP   ";
-static char title3[]   = " Version 1.2";
+static char title3[]   = " Version 1.0";
 
 
 //==================================================================

@@ -20,7 +20,7 @@
 #define LINE_HEIGHT 20
 static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
-static char title3[]   = " Version 1.1 ";
+static char title3[]   = " Version 1.0 ";
 
 static uint16_t magnitudelimit = 100;
 static uint16_t magnitudelimit_low = 100;
@@ -59,6 +59,35 @@ uint8_t lastChar = 0;
 
 int16_t 	morseData[GOERTZEL_SAMPLES];
 
+//==================================================================
+// gap を 1単位 hightimesavg の相対値で分類
+//==================================================================
+typedef enum {
+	GAP_INTRA = 0, // 文字内
+	GAP_CHAR  = 1, // 文字間
+	GAP_WORD  = 2  // 単語間
+} gap_type_t;
+
+static gap_type_t classify_gap(uint32_t gap, uint32_t unit)
+{
+	if (unit == 0) return GAP_INTRA; // まだ学習前の保護
+
+	// gap < 1.5 * unit → 同一文字内
+	if (gap < (unit * 3) / 2) {
+		return GAP_INTRA;
+	}
+	// 1.5〜4.5 * unit → 文字間
+	if (gap < (unit * 9) / 2) {
+		return GAP_CHAR;
+	}
+	// 6 * unit 以上 → 単語間
+	if (gap >= unit * 6) {
+		return GAP_WORD;
+	}
+
+	// 4.5〜6 * unit は微妙ゾーン → とりあえず文字間に寄せる
+	return GAP_CHAR;
+}
 //==================================================================
 //	updateinfolinelcd() : print info field
 //==================================================================
@@ -113,7 +142,6 @@ static void printAscii(int16_t asciinumber)
 	tft_set_cursor(lcdindex * FONT_WIDTH , LINE_HEIGHT * 3);
 	tft_print_char(asciinumber, FONT_SCALE_16X16);
 	lcdindex += 1;
-	lastChar = asciinumber;
 }
 
 //==================================================================
@@ -192,6 +220,8 @@ static int decodeAscii(int16_t asciinumber)
 	} else {
 		printAscii(asciinumber);
 	}
+	lastChar = asciinumber;
+
 	return 0;
 }
 
@@ -304,28 +334,22 @@ TEST_LOW
 				}
 			}
 		}
+		if (filteredstate == high) {  //// we did end a LOW
 
-		if (filteredstate == high){  //// we did end a LOW
+			if (hightimesavg > 0) {
+				gap_type_t g = classify_gap(lowduration, hightimesavg);
 
-			int16_t lacktime = 8;
-			if(wpm > 25)lacktime=10; ///  when high speeds we have to have a little more pause before new letter or new word
-			if(wpm > 30)lacktime=12;
-			if(wpm > 35)lacktime=15;
-
-			if (lowduration > ((hightimesavg * (2 * lacktime) / 10)) && lowduration < (hightimesavg * (5 * lacktime)) / 10){ // letter space
-				if (strlen(code) > 0) {
-					decodeAscii(docode(code, &sw));
-					code[0] = '\0';
-//	 				printf("/");
-				}
-			}
-			if (lowduration >= (hightimesavg * (5 * lacktime)) / 10){ // word space
-				if (strlen(code) > 0) {
-					decodeAscii(docode(code, &sw));
-					code[0] = '\0';
-					printAscii(32);
-	//				printf(" ");
-	//				printf("\n");
+				if (g == GAP_CHAR) {          // 文字間
+					if (strlen(code) > 0) {
+						decodeAscii(docode(code, &sw));
+						code[0] = '\0';
+					}
+				} else if (g == GAP_WORD) {   // 単語間
+					if (strlen(code) > 0) {
+						decodeAscii(docode(code, &sw));
+						code[0] = '\0';
+					}
+					decodeAscii(32);           // スペース出力
 				}
 			}
 		}
@@ -333,7 +357,8 @@ TEST_LOW
 		//////////////////////////////
 		// write if no more letters //
 		//////////////////////////////
-		if ((millis() - startttimelow) > (highduration * 6) && stop == low){
+		uint32_t unit = (hightimesavg > 0) ? hightimesavg : highduration;
+		if ((millis() - startttimelow) > unit * 6 && stop == low) {
 			decodeAscii(docode(code, &sw));
 			code[0] = '\0';
 			stop = high;
