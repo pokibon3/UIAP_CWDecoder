@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "common.h"
 #include "ch32v003fun.h"
 #include "st7735.h"
@@ -44,19 +45,23 @@ int main()
 	int8_t *vReal;
 	int8_t *vImag;
 
+	SystemInit();				// ch32v003 Setup
+	GPIO_setup();				// gpio Setup;
+    tft_init();					// LCD init
+
 	vReal = (int8_t *)&buf[0];
 	vImag = (int8_t *)&buf[128];
 	morseData = (int16_t *)&buf[0];
 
-	SystemInit();				// ch32v003 Setup
-	GPIO_setup();				// gpio Setup;
-    tft_init();					// LCD init
 	while (1) {
+		// cw decoder
 		cwd_setup();			// freq detector Setup
 		cwDecoder(morseData);	// run cw decoder
+		// frequency detector
 		fd_setup();				// freq detector Setup
 		freqDetector(vReal, vImag);			// run freq counter
 	}
+	return 0;
 }
 
 

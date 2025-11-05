@@ -5,10 +5,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <math.h>
+
 #include "common.h"
 #include "ch32v003_GPIO_branchless.h"
-#include "common.h"
 #include "frequencyDetector.h"
 #include "fix_fft.h"
 #include "st7735.h"
@@ -16,12 +15,17 @@
 
 #define FD_SAMPLING_FREQUENCY 6000	// Hz	+10%
 
+// 画面レイアウト用マクロ
+#define FFT_AREA_Y_TOP      19
+#define FFT_AREA_Y_BOTTOM   70
+#define FFT_AREA_HEIGHT     (FFT_AREA_Y_BOTTOM - FFT_AREA_Y_TOP + 1)
+#define FFT_LABEL_Y         73
 
+// タイトル文字列
 static char title1[]   = "Freq.Detector";
 static char title2[]   = "  for UIAP   ";
 static char title3[]   = " Version 1.2";
-//static int8_t vReal[SAMPLES];
-//static int8_t vImag[SAMPLES];
+
 
 //==================================================================
 //	chack switch
@@ -47,17 +51,22 @@ int fd_setup()
 {
     sampling_period_us = 900000L / FD_SAMPLING_FREQUENCY;
     //sampling_period_us = 1000000L / FD_SAMPLING_FREQUENCY;
+
+	// display title
 	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-	tft_set_cursor(0, 0);
+
 	tft_set_color(BLUE);
 	tft_set_cursor(0, 10);
 	tft_print(title1, FONT_SCALE_16X16);
+
 	tft_set_color(RED);
 	tft_set_cursor(0, 30);
 	tft_print(title2, FONT_SCALE_16X16);
+
 	tft_set_cursor(0, 50);
 	tft_set_color(GREEN);
-	tft_print(title3, FONT_SCALE_16X16)	;
+	tft_print(title3, FONT_SCALE_16X16);
+
 	tft_set_color(WHITE);
 
 	Delay_Ms( 1000 );
@@ -68,15 +77,16 @@ int fd_setup()
 //==================================================================
 //  adc and fft for freq counter
 //==================================================================
-int freqDetector(int8_t *vReal, int8_t *vImag) {
+int freqDetector(int8_t *vReal, int8_t *vImag) 
+{
 	uint16_t peakFrequency = 0;
 	uint16_t oldFreequency = 0;
 	char buf[16];
 
 	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
 	tft_draw_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT - 8, BLUE);
-//	tft_draw_line(0, 19, ST7735_WIDTH, 19, BLUE);
-	tft_set_cursor(0, 73);
+
+	tft_set_cursor(0, FFT_LABEL_Y);
 	tft_set_color(BLUE);
 	tft_print("0Hz      1KHz       2KHz", FONT_SCALE_8X8);
 
@@ -116,15 +126,15 @@ TEST_LOW
 		// draw FFT result
 		uint8_t maxIndex = 0;
 		uint8_t maxValue = 0;
-		tft_fill_rect(1, 19, ST7735_WIDTH - 2, 51, BLACK);
+		tft_fill_rect(1, FFT_AREA_Y_TOP, ST7735_WIDTH - 2, FFT_AREA_HEIGHT, BLACK);
 		tft_draw_line(64,  1,  64, 71, DARKBLUE); // 1.0kHz line
 		tft_draw_line(128, 1, 128, 71, DARKBLUE); // 2.0kHz line
 
 		for (int i = 1; i < (((SAMPLES / 2) < 52) ? SAMPLES /2 : 52); i++) {
 			int8_t val = (vReal[i] * SCALE < 50) ? vReal[i] * SCALE : 50;
-			tft_draw_line(i * 3,     70       , i * 3,     70 - val, WHITE);
-			tft_draw_line(i * 3 + 1, 70 - val , i * 3 + 2, 70 - val, WHITE);
-			tft_draw_line(i * 3 + 3, 70       , i * 3 + 3, 70 - val, WHITE);
+			tft_draw_line(i * 3,     FFT_AREA_Y_BOTTOM       , i * 3,     FFT_AREA_Y_BOTTOM - val, WHITE);
+			tft_draw_line(i * 3 + 1, FFT_AREA_Y_BOTTOM - val , i * 3 + 2, FFT_AREA_Y_BOTTOM - val, WHITE);
+			tft_draw_line(i * 3 + 3, FFT_AREA_Y_BOTTOM       , i * 3 + 3, FFT_AREA_Y_BOTTOM - val, WHITE);
 			if (vReal[i] > maxValue) {
 				maxValue = vReal[i];
 				maxIndex = i;
@@ -136,13 +146,13 @@ TEST_LOW
 			if (maxValue >= 4 ) {
 				mini_snprintf(buf, sizeof(buf), "%4dHz", peakFrequency + FD_SAMPLING_FREQUENCY / SAMPLES / 2);
 			} else {
-//				strcpy(buf, "   0Hz");
 				strcpy(buf, "    Hz");
 			}
 			tft_set_cursor ((6 - strlen(buf)) * 12 + 82, 3);
 			tft_set_color(YELLOW);
 			tft_fill_rect(80, 1, ST7735_WIDTH - 82, 18, BLACK);
 			tft_print(buf, FONT_SCALE_16X16);
+			
 			oldFreequency = peakFrequency;
 		}
 //TEST_LOW

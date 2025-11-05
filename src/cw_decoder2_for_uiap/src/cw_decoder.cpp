@@ -62,7 +62,7 @@ int16_t 	morseData[GOERTZEL_SAMPLES];
 //==================================================================
 //	updateinfolinelcd() : print info field
 //==================================================================
-void updateinfolinelcd()
+static void updateinfolinelcd()
 {
 	char buf[17];
 	const char *mode;
@@ -89,10 +89,8 @@ void updateinfolinelcd()
 //==================================================================
 //	printascii : print the ascii code to the lcd
 //==================================================================
-void printascii(int16_t asciinumber)
+static void printAscii(int16_t asciinumber)
 {
-	if (asciinumber == 0) return;
-	if (lastChar == 32 && asciinumber == 32) return;
 #ifdef SERIAL_OUT
 	printf("%c", asciinumber);
 #endif
@@ -169,6 +167,32 @@ int cwd_setup()
 	}
     Delay_Ms( 1000 );	
     return 0;
+}
+
+//==================================================================
+//	cwDecoder : deocder main
+//==================================================================
+static int decodeAscii(int16_t asciinumber)
+{
+	if (asciinumber == 0) return 0;
+	if (lastChar == 32 && asciinumber == 32) return 0;
+
+	if        (asciinumber == 1) {			// AR
+		printAscii('A');
+		printAscii('R');
+	} else if (asciinumber == 2) {			// KN
+		printAscii('K');
+		printAscii('N');
+	} else if (asciinumber == 3) {			// BT
+		printAscii('B');
+		printAscii('T');
+	} else if (asciinumber == 4) {			// VA
+		printAscii('V');
+		printAscii('A');
+	} else {
+		printAscii(asciinumber);
+	}
+	return 0;
 }
 
 //==================================================================
@@ -290,16 +314,16 @@ TEST_LOW
 
 			if (lowduration > ((hightimesavg * (2 * lacktime) / 10)) && lowduration < (hightimesavg * (5 * lacktime)) / 10){ // letter space
 				if (strlen(code) > 0) {
-					printascii(docode(code, &sw));
+					decodeAscii(docode(code, &sw));
 					code[0] = '\0';
 //	 				printf("/");
 				}
 			}
 			if (lowduration >= (hightimesavg * (5 * lacktime)) / 10){ // word space
 				if (strlen(code) > 0) {
-					printascii(docode(code, &sw));
+					decodeAscii(docode(code, &sw));
 					code[0] = '\0';
-					printascii(32);
+					printAscii(32);
 	//				printf(" ");
 	//				printf("\n");
 				}
@@ -310,7 +334,7 @@ TEST_LOW
 		// write if no more letters //
 		//////////////////////////////
 		if ((millis() - startttimelow) > (highduration * 6) && stop == low){
-			printascii(docode(code, &sw));
+			decodeAscii(docode(code, &sw));
 			code[0] = '\0';
 			stop = high;
 		}
