@@ -1,3 +1,31 @@
+///////////////////////////////////////////////////////////////////////
+// CW Decoder made by Hjalmar Skovholm Hansen OZ1JHM  VER 1.01       //
+// Feel free to change, copy or what ever you like but respect       //
+// that license is <a href="http://www.gnu.org/copyleft/gpl.html" title="http://www.gnu.org/copyleft/gpl.html" rel="nofollow">http://www.gnu.org/copyleft/gpl.html</a>              //
+// Discuss and give great ideas on                                   //
+// <a href="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages" title="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages" rel="nofollow">https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages</a> //
+//                                                                   //
+// Modifications by KC2UEZ. Bumped to VER 1.2:                       //
+// Changed to work with the Arduino NANO.                            //
+// Added selection of "Target Frequency" and "Bandwith" at power up. //
+///////////////////////////////////////////////////////////////////////
+ 
+///////////////////////////////////////////////////////////////////////////
+// Read more here <a href="http://en.wikipedia.org/wiki/Goertzel_algorithm" title="http://en.wikipedia.org/wiki/Goertzel_algorithm" rel="nofollow">http://en.wikipedia.org/wiki/Goertzel_algorithm</a>        //
+// if you want to know about FFT the <a href="http://www.dspguide.com/pdfbook.htm" title="http://www.dspguide.com/pdfbook.htm" rel="nofollow">http://www.dspguide.com/pdfbook.htm</a> //
+///////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////
+// Modified version by Kimio Ohe
+// Modifications:
+//  - port to UIAPduino Pro Micro(CH32V003)
+//  - add freq detector function
+//  - Refactoring of all source files
+// Date: 2025-11-07
+//
+// このソフトウェアは GNU General Public License (GPL) に基づき配布されています。
+// 改変版も同じ GPL ライセンスで再配布してください。
+///////////////////////////////////////////////////////////////////////////
 //
 //	CW Decoder functions
 //
