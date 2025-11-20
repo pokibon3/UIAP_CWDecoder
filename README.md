@@ -1,16 +1,13 @@
-# UIAPduino Pro Micro Sample Programs
+# CW Decoder for UIAPduino 
 
 UIAP Pro Microで動作するサンプルプログラムです。  
 ビルド環境はVSCode + ch32v003funが必要です。  
 書き込は、WCH-LinkEまたは、UIAPのUSB端子から行います。
 
-## freqcounter
-MIC入力を6000Hzでサンプリングし、FFT解析結果をスペアナ風に表示します。  
-最大表示周波数は3KHz、ピーク周波数表示付きです。
-
-## cw_decoder_for_uiap
+## cw_decoder2_for_uiap
 モールス信号のデコードと、音声信号のFFTアナライザの2つのモードが使用できます。  
-MODE SWを押下することで切り換え可能です。
+MODE SWを押下することで切り換え可能です。  
+製作方法、使用方法等は[R16 Friendship Radio Scrapbox](https://scrapbox.io/r16fr/UIAPduino%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%9FCW_Decoder%E3%81%AE%E8%A3%BD%E4%BD%9C)を参照してください。
 
 ■ モールス信号デコード  
 モールス信号をMIC入力し、デコードした結果を表示します。    
