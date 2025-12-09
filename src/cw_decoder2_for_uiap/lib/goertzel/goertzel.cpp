@@ -31,6 +31,29 @@ void setSpeed(int16_t speed)
     }
 }
 
+// floor(sqrt(x)) を返す
+static uint32_t isqrt32(uint32_t x)
+{
+    uint32_t op  = x;
+    uint32_t res = 0;
+    uint32_t one = 1u << 30;   // 2^30（32bit の「2番目に高いビット」）
+
+    // one を、x 以下の最大の 4 の冪に調整
+    while (one > op) {
+        one >>= 2;
+    }
+
+    while (one != 0) {
+        if (op >= res + one) {
+            op  -= res + one;
+            res += one << 1;
+        }
+        res >>= 1;
+        one >>= 2;
+    }
+
+    return res;   // これが floor(sqrt(x))
+}
 void initGoertzel(int16_t speed)
 {   
 //    int16_t k = (int) (0.5 + ((N * target_freq) / sampling_freq));
@@ -56,6 +79,9 @@ int32_t goertzel(int16_t *data, int16_t n)
     }
     mag2 = (Q1 * Q1) + (Q2 * Q2) - Q1 * Q2 * coeff100 / 100;
 
-    return abs(mag2);       // Magnitude calculation without sqrt
+//  return mag2;
+    return isqrt32(mag2);
+
+//    return abs(mag2);       // Magnitude calculation without sqrt
 //    return sqrt(mag2);
 }

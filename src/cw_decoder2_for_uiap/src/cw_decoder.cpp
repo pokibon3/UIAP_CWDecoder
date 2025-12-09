@@ -21,7 +21,9 @@
 //  - port to UIAPduino Pro Micro(CH32V003)
 //  - add freq detector function
 //  - Refactoring of all source files
-// Date: 2025-11-07
+// Date: 2025-11-07 Version 1.0
+//  - modify DFT algorithm to Goertzel algorithm
+// Date: 2025.12.05 Version 1.1
 //
 // このソフトウェアは GNU General Public License (GPL) に基づき配布されています。
 // 改変版も同じ GPL ライセンスで再配布してください。
@@ -48,7 +50,7 @@
 #define LINE_HEIGHT 20
 static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
-static char title3[]   = " Version 1.0 ";
+static char title3[]   = " Version 1.1 ";
 
 static uint16_t magnitudelimit = 100;
 static uint16_t magnitudelimit_low = 100;
@@ -70,7 +72,7 @@ static uint16_t stop = low;
 static uint16_t wpm;
 
 static char		sw = MODE_US;
-static int16_t 	speed = 1;
+static int16_t 	speed = 0;
 
 static const char *tone[] = {
 	" 600",
@@ -181,8 +183,8 @@ static int check_sw()
 	int val = check_input();
 
 	if (val == 3) {
-		speed -= 1;
-		if (speed < 0) speed = 2;
+		speed += 1;
+		if (speed > 2) speed = 0;
 		setSpeed(speed);
 		updateinfolinelcd();
 		Delay_Ms(300);
@@ -282,9 +284,11 @@ TEST_HIGH
 TEST_LOW
 
 		// calc goertzel
-		magnitude = goertzel(morseData, GOERTZEL_SAMPLES) / 400;
+//		magnitude = goertzel(morseData, GOERTZEL_SAMPLES) / 400;
+		magnitude = goertzel(morseData, GOERTZEL_SAMPLES);
 		tft_draw_line(159, 79, 159, 0 , BLACK);
-		int16_t w = 80 - magnitude / 50;
+//		int16_t w = 80 - magnitude / 50;
+		int16_t w = 80 - magnitude / 8;
 		if (w < 0) w = 0;
 		if (w > 80) w = 80;
 
