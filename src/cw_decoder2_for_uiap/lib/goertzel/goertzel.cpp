@@ -79,9 +79,5 @@ int32_t goertzel(int16_t *data, int16_t n)
     }
     mag2 = (Q1 * Q1) + (Q2 * Q2) - Q1 * Q2 * coeff100 / 100;
 
-//  return mag2;
     return isqrt32(mag2);
-
-//    return abs(mag2);       // Magnitude calculation without sqrt
-//    return sqrt(mag2);
 }
