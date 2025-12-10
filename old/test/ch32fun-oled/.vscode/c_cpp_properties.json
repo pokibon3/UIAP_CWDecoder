@@ -1,0 +1,49 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "D:/src/UIAPduino/ch32fun-oled/include",
+                "D:/src/UIAPduino/ch32fun-oled/src",
+                "C:/Users/ooe/.platformio/packages/framework-ch32v003fun/ch32fun",
+                "C:/Users/ooe/.platformio/packages/framework-ch32v003fun/extralibs",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "D:/src/UIAPduino/ch32fun-oled/include",
+                    "D:/src/UIAPduino/ch32fun-oled/src",
+                    "C:/Users/ooe/.platformio/packages/framework-ch32v003fun/ch32fun",
+                    "C:/Users/ooe/.platformio/packages/framework-ch32v003fun/extralibs",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60118",
+                "CH32V003F4",
+                "CH32V00X",
+                "CH32V003",
+                "SYSCLK_FREQ_48MHz_HSI=48000000",
+                "__PIO_BUILD_CH32V003FUN__",
+                ""
+            ],
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++17",
+            "compilerPath": "C:/Users/ooe/.platformio/packages/toolchain-riscv/bin/riscv-wch-elf-gcc.exe",
+            "compilerArgs": [
+                "-msmall-data-limit=0",
+                "-msave-restore",
+                "-march=rv32ecxw",
+                "-mabi=ilp32e",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
