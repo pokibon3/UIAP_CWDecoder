@@ -53,8 +53,8 @@ static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
 static char title3[]   = " Version 1.1 ";
 
-static uint16_t magnitudelimit = 160;
-static uint16_t magnitudelimit_low = 160;
+static uint16_t magnitudelimit = 140;
+static uint16_t magnitudelimit_low = 140;
 static uint16_t realstate = low;
 static uint16_t realstatebefore = low;
 static uint16_t filteredstate = low;

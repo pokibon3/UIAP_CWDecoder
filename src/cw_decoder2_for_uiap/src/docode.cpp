@@ -124,10 +124,10 @@ int16_t docode(char *code, char *sw)
     if (strcmp(code,"-..---") == 0) *sw = MODE_JP; //wabun start 
     if (strcmp(code,"...-.")  == 0) *sw = MODE_US;  //wabunn end
     if (*sw == MODE_US) {
-        if (strcmp(code,".-..-.") == 0) {
-            *sw = MODE_JP;
-            return(0x29); 
-        }
+//        if (strcmp(code,".-..-.") == 0) {
+//            *sw = MODE_JP;
+//            return(0x29); 
+//        }
         //Alphabets
         if (strcmp(code,".-")     == 0) return(65);   // A
         if (strcmp(code,"-...")   == 0) return(66);   // B
@@ -193,10 +193,10 @@ int16_t docode(char *code, char *sw)
     //    if (strcmp(code,".--.-")  == 0) return(6);
     } 
     if (*sw == 1) { //wabun 
-        if (strcmp(code,"-.--.-") == 0) {
-            *sw = 0;
-            return(0x28); 
-        } 
+//        if (strcmp(code,"-.--.-") == 0) {
+//            *sw = 0;
+//            return(0x28); 
+//        } 
         //wabun code
         if (strcmp(code,"--.--")  == 0) return(0xB1);   // ｱ
         if (strcmp(code,".-")     == 0) return(0xB2);   // ｲ
