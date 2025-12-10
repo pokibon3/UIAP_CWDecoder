@@ -22,9 +22,9 @@
 #define FFT_LABEL_Y         73
 
 // タイトル文字列
-//static char title1[]   = "Freq.Detector";
-//static char title2[]   = "  for UIAP   ";
-//static char title3[]   = " Version 1.0";
+static char title1[]   = "Freq.Detector";
+static char title2[]   = "  for UIAP   ";
+static char title3[]   = " Version 1.0";
 
 
 //==================================================================
@@ -55,7 +55,6 @@ int fd_setup()
 	// display title
 	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
 
-/*
 	tft_set_color(BLUE);
 	tft_set_cursor(0, 10);
 	tft_print(title1, FONT_SCALE_16X16);
@@ -67,10 +66,10 @@ int fd_setup()
 	tft_set_cursor(0, 50);
 	tft_set_color(GREEN);
 	tft_print(title3, FONT_SCALE_16X16);
-	Delay_Ms( 1000 );
-*/
+
 	tft_set_color(WHITE);
 
+	Delay_Ms( 1000 );
 
     return 0;
 }
@@ -103,7 +102,7 @@ TEST_HIGH
 		// input audio
 		for (int i = 0; i < SAMPLES; i++) {
 			t = micros();
-			val = (uint8_t)((GPIO_analogRead(GPIO_Ain0_A2) >> 2) & 0xFF); // 0-255
+			val = (uint8_t)(GPIO_analogRead(GPIO_Ain0_A2) >> 2);
 			ave += val;
 			vImag[i] = val;
 			while ((micros() - t) < sampling_period_us);

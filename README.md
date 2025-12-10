@@ -18,6 +18,16 @@ MODE SWを押下することで切り換え可能です。
 　約2.5kHzまでのオーディオ信号のスペクトルを表示します。  
 　ピーク周波数を表示します。
 
+
+■ 変更履歴
+- V1.0  
+・ 新規リリース
+- V1.1  
+・ オーディオ入力のダイナミックレンジ拡大  
+・ 欧文/和文切換えのBug Fix
+・ モールスデコーダーのデフォルト周波数を600Hzに変更  
+・ FFTアナライザのスプラッシュ表示削除
+
 ■ ライセンス
 ※本ソフトはOZIJHM氏のArduino用CW DECODERをCH32V003+ch32v003funの環境に移植したものです。  
  http://oz1jhm.dk/content/very-simpel-cw-decoder-easy-build

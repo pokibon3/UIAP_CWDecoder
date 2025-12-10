@@ -41,7 +41,6 @@
 #include "st7735.h"
 #include "ch32v003_GPIO_branchless.h"
 
-//#define SERIAL_OUT
 #define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
 #define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
 
@@ -52,10 +51,9 @@
 static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
 static char title3[]   = " Version 1.1 ";
-static uint8_t first_flg = 1;
 
-static uint16_t magnitudelimit = 140;
-static uint16_t magnitudelimit_low = 140;
+static uint16_t magnitudelimit = 100;
+static uint16_t magnitudelimit_low = 100;
 static uint16_t realstate = low;
 static uint16_t realstatebefore = low;
 static uint16_t filteredstate = low;
@@ -206,21 +204,17 @@ static int check_sw()
 //==================================================================
 int cwd_setup()
 {
-	if (first_flg == 1) {
-		first_flg = 0;
-		tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-		tft_set_cursor(0, 0);
-		tft_set_color(BLUE);
-		tft_set_cursor(0, 10);
-		tft_print(title1, FONT_SCALE_16X16);
-		tft_set_color(RED);
-		tft_set_cursor(0, 30);
-		tft_print(title2, FONT_SCALE_16X16);
-		tft_set_cursor(0, 50);
-		tft_set_color(GREEN);
-		tft_print(title3, FONT_SCALE_16X16)	;
-	    Delay_Ms( 1000 );	
-	}
+	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
+	tft_set_cursor(0, 0);
+	tft_set_color(BLUE);
+	tft_set_cursor(0, 10);
+	tft_print(title1, FONT_SCALE_16X16);
+	tft_set_color(RED);
+	tft_set_cursor(0, 30);
+	tft_print(title2, FONT_SCALE_16X16);
+	tft_set_cursor(0, 50);
+	tft_set_color(GREEN);
+	tft_print(title3, FONT_SCALE_16X16)	;
 	tft_set_color(WHITE);
 
 	initGoertzel(speed);
@@ -229,6 +223,7 @@ int cwd_setup()
     	line1[i] = 32;
 		line2[i] = 32;
 	}
+    Delay_Ms( 1000 );	
     return 0;
 }
 

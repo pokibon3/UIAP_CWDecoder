@@ -30,9 +30,8 @@ void setSpeed(int16_t speed)
             coeff100 = 154;
     }
 }
-
 // floor(sqrt(x)) を返す
-static uint32_t isqrt32(uint32_t x)
+uint32_t isqrt32(uint32_t x)
 {
     uint32_t op  = x;
     uint32_t res = 0;
@@ -78,6 +77,10 @@ int32_t goertzel(int16_t *data, int16_t n)
         Q1 = Q0;
     }
     mag2 = (Q1 * Q1) + (Q2 * Q2) - Q1 * Q2 * coeff100 / 100;
+    if (mag2 < 0) mag2 = 0; // もし負ならゼロに設定
 
     return isqrt32(mag2);
+
+//    return abs(mag2);       // Magnitude calculation without sqrt
+//    return sqrt(mag2);
 }

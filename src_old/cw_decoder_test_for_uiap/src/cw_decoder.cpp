@@ -21,9 +21,7 @@
 //  - port to UIAPduino Pro Micro(CH32V003)
 //  - add freq detector function
 //  - Refactoring of all source files
-// Date: 2025-11-07 Version 1.0
-//  - modify DFT algorithm to Goertzel algorithm
-// Date: 2025.12.05 Version 1.1
+// Date: 2025-11-07
 //
 // このソフトウェアは GNU General Public License (GPL) に基づき配布されています。
 // 改変版も同じ GPL ライセンスで再配布してください。
@@ -41,7 +39,6 @@
 #include "st7735.h"
 #include "ch32v003_GPIO_branchless.h"
 
-//#define SERIAL_OUT
 #define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
 #define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
 
@@ -51,11 +48,10 @@
 #define LINE_HEIGHT 20
 static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
-static char title3[]   = " Version 1.1 ";
-static uint8_t first_flg = 1;
+static char title3[]   = " Version 1.0 ";
 
-static uint16_t magnitudelimit = 140;
-static uint16_t magnitudelimit_low = 140;
+static uint16_t magnitudelimit = 100;
+static uint16_t magnitudelimit_low = 100;
 static uint16_t realstate = low;
 static uint16_t realstatebefore = low;
 static uint16_t filteredstate = low;
@@ -74,7 +70,7 @@ static uint16_t stop = low;
 static uint16_t wpm;
 
 static char		sw = MODE_US;
-static int16_t 	speed = 0;
+static int16_t 	speed = 1;
 
 static const char *tone[] = {
 	" 600",
@@ -185,8 +181,8 @@ static int check_sw()
 	int val = check_input();
 
 	if (val == 3) {
-		speed += 1;
-		if (speed > 2) speed = 0;
+		speed -= 1;
+		if (speed < 0) speed = 2;
 		setSpeed(speed);
 		updateinfolinelcd();
 		Delay_Ms(300);
@@ -206,21 +202,17 @@ static int check_sw()
 //==================================================================
 int cwd_setup()
 {
-	if (first_flg == 1) {
-		first_flg = 0;
-		tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-		tft_set_cursor(0, 0);
-		tft_set_color(BLUE);
-		tft_set_cursor(0, 10);
-		tft_print(title1, FONT_SCALE_16X16);
-		tft_set_color(RED);
-		tft_set_cursor(0, 30);
-		tft_print(title2, FONT_SCALE_16X16);
-		tft_set_cursor(0, 50);
-		tft_set_color(GREEN);
-		tft_print(title3, FONT_SCALE_16X16)	;
-	    Delay_Ms( 1000 );	
-	}
+	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
+	tft_set_cursor(0, 0);
+	tft_set_color(BLUE);
+	tft_set_cursor(0, 10);
+	tft_print(title1, FONT_SCALE_16X16);
+	tft_set_color(RED);
+	tft_set_cursor(0, 30);
+	tft_print(title2, FONT_SCALE_16X16);
+	tft_set_cursor(0, 50);
+	tft_set_color(GREEN);
+	tft_print(title3, FONT_SCALE_16X16)	;
 	tft_set_color(WHITE);
 
 	initGoertzel(speed);
@@ -229,6 +221,7 @@ int cwd_setup()
     	line1[i] = 32;
 		line2[i] = 32;
 	}
+    Delay_Ms( 1000 );	
     return 0;
 }
 
@@ -289,11 +282,9 @@ TEST_HIGH
 TEST_LOW
 
 		// calc goertzel
-//		magnitude = goertzel(morseData, GOERTZEL_SAMPLES) / 400;
-		magnitude = goertzel(morseData, GOERTZEL_SAMPLES);
+		magnitude = goertzel(morseData, GOERTZEL_SAMPLES) / 400;
 		tft_draw_line(159, 79, 159, 0 , BLACK);
-//		int16_t w = 80 - magnitude / 50;
-		int16_t w = 80 - magnitude / 8;
+		int16_t w = 80 - magnitude / 50;
 		if (w < 0) w = 0;
 		if (w > 80) w = 80;
 
