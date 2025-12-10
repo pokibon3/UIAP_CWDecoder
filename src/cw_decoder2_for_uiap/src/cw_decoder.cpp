@@ -41,6 +41,7 @@
 #include "st7735.h"
 #include "ch32v003_GPIO_branchless.h"
 
+//#define SERIAL_OUT
 #define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
 #define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
 
@@ -52,8 +53,8 @@ static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
 static char title3[]   = " Version 1.1 ";
 
-static uint16_t magnitudelimit = 100;
-static uint16_t magnitudelimit_low = 100;
+static uint16_t magnitudelimit = 160;
+static uint16_t magnitudelimit_low = 160;
 static uint16_t realstate = low;
 static uint16_t realstatebefore = low;
 static uint16_t filteredstate = low;
