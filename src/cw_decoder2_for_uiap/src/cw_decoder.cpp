@@ -42,6 +42,7 @@
 #include "ch32v003_GPIO_branchless.h"
 
 //#define SERIAL_OUT
+
 #define TEST_HIGH			GPIO_digitalWrite(TEST_PIN, high);
 #define TEST_LOW			GPIO_digitalWrite(TEST_PIN, low);
 
@@ -51,10 +52,10 @@
 #define LINE_HEIGHT 20
 static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
-static char title3[]   = " Version 1.1 ";
+static char title3[]   = " Version 1.2 ";
 static uint8_t first_flg = 1;
 
-static uint16_t magnitudelimit = 140;
+static uint16_t magnitudelimit = 140;  		// privius 140
 static uint16_t magnitudelimit_low = 140;
 static uint16_t realstate = low;
 static uint16_t realstatebefore = low;
@@ -77,7 +78,7 @@ static char		sw = MODE_US;
 static int16_t 	speed = 0;
 
 static const char *tone[] = {
-	" 600",
+	" 700",
 	" 800",
 	"1000"
 };
@@ -278,7 +279,7 @@ TEST_HIGH
         }
 		for (int i = 0; i < GOERTZEL_SAMPLES; i++) {
 			uint32_t t = micros();
-			morseData[i] = GPIO_analogRead(GPIO_Ain0_A2);
+			morseData[i] = GPIO_analogRead(GPIO_Ain0_A2) >> 1;
 			ave += morseData[i];
 			while ((micros() - t) < sampling_period_us);
 		}
