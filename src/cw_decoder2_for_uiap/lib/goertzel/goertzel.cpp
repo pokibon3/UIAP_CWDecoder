@@ -18,16 +18,16 @@ void setSpeed(int16_t speed)
 {
     switch(speed) {
         case 0 :
-            coeff100 = 185;         // 666.7Hz
+            coeff100 = 173;         // 666.7Hz
             break;
         case 1 :
-            coeff100 = 154;         // 888.8Hz
+            coeff100 = 158;         // 833.3Hz
             break;
         case 2 :
-            coeff100 = 100;         // 1000.0Hz
+            coeff100 = 141;         // 1000.0Hz
             break;
         default :
-            coeff100 = 154;
+            coeff100 = 173;
     }
 }
 
