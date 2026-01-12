@@ -1,41 +1,47 @@
 ///////////////////////////////////////////////////////////////////////
-// CW Decoder made by Hjalmar Skovholm Hansen OZ1JHM  VER 1.01       //
-// Feel free to change, copy or what ever you like but respect       //
-// that license is <a href="http://www.gnu.org/copyleft/gpl.html" title="http://www.gnu.org/copyleft/gpl.html" rel="nofollow">http://www.gnu.org/copyleft/gpl.html</a>              //
-// Discuss and give great ideas on                                   //
+// CWデコーダ (Hjalmar Skovholm Hansen OZ1JHM) バージョン 1.01       //
+// 自由に改変・複製できますが、GPL を遵守してください。       //
+// ライセンス: <a href="http://www.gnu.org/copyleft/gpl.html" title="http://www.gnu.org/copyleft/gpl.html" rel="nofollow">http://www.gnu.org/copyleft/gpl.html</a>              //
+// 議論・提案はこちら:                                               //
 // <a href="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages" title="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages" rel="nofollow">https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages</a> //
 //                                                                   //
-// Modifications by KC2UEZ. Bumped to VER 1.2:                       //
-// Changed to work with the Arduino NANO.                            //
-// Added selection of "Target Frequency" and "Bandwith" at power up. //
+// KC2UEZ による改変 (バージョン 1.2):                                     //
+// - Arduino NANO に対応                                            //
+// - 起動時に「ターゲット周波数」と「帯域」を選択可能               //
 ///////////////////////////////////////////////////////////////////////
  
 ///////////////////////////////////////////////////////////////////////////
-// Read more here <a href="http://en.wikipedia.org/wiki/Goertzel_algorithm" title="http://en.wikipedia.org/wiki/Goertzel_algorithm" rel="nofollow">http://en.wikipedia.org/wiki/Goertzel_algorithm</a>        //
-// if you want to know about FFT the <a href="http://www.dspguide.com/pdfbook.htm" title="http://www.dspguide.com/pdfbook.htm" rel="nofollow">http://www.dspguide.com/pdfbook.htm</a> //
+// Goertzel 法の解説: <a href="http://en.wikipedia.org/wiki/Goertzel_algorithm" title="http://en.wikipedia.org/wiki/Goertzel_algorithm" rel="nofollow">http://en.wikipedia.org/wiki/Goertzel_algorithm</a>     //
+// FFT の参考: <a href="http://www.dspguide.com/pdfbook.htm" title="http://www.dspguide.com/pdfbook.htm" rel="nofollow">http://www.dspguide.com/pdfbook.htm</a>                //
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
-// Modified version by Kimio Ohe
-// Modifications:
-//  - port to UIAPduino Pro Micro(CH32V003)
-//  - add freq detector function
-//  - Refactoring of all source files
-// Date: 2025-11-07 Version 1.0
-//  - modify DFT algorithm to Goertzel algorithm
-// Date: 2025.12.05 Version 1.1
+// 改変版 (Kimio Ohe)
+// 変更点:
+//  - UIAPduino Pro Micro(CH32V003) に移植
+//  - 周波数検出機能を追加
+//  - 全ソースをリファクタリング
+// 日付: 2025-11-07 バージョン 1.0
+//  - DFT を Goertzel 法に変更
+// 日付: 2025.12.05 バージョン 1.1
+//  - オーディオ入力ダイナミックレンジ拡大
+// 日付: 2025.12.13 バージョン 1.2
+//  - DFTの周波数を調整
+//  - DFTの入力レベルを調整
+// 日付: 2025.12.20 バージョン 1.3
+//  - デコードタイミング微調整
 //
 // このソフトウェアは GNU General Public License (GPL) に基づき配布されています。
 // 改変版も同じ GPL ライセンスで再配布してください。
 ///////////////////////////////////////////////////////////////////////////
 //
-//	CW Decoder functions
+//	CWデコーダ関数
 //
 #include <stdio.h>
 #include <stdlib.h>
 #include "common.h"
 #include "goertzel.h"
-#include "docode.h"
+#include "decode.h"
 #include "st7735.h"
 #include "ch32v003fun.h"
 #include "st7735.h"
@@ -52,10 +58,10 @@
 #define LINE_HEIGHT 20
 static char title1[]   = " CW Decoder  ";
 static char title2[]   = "  for UIAP   ";
-static char title3[]   = " Version 1.2 ";
+static char title3[]   = " Version 1.3 ";
 static uint8_t first_flg = 1;
 
-static uint16_t magnitudelimit = 140;  		// privius 140
+static uint16_t magnitudelimit = 140;  		// 以前は 140
 static uint16_t magnitudelimit_low = 140;
 static uint16_t realstate = low;
 static uint16_t realstatebefore = low;
@@ -64,11 +70,11 @@ static uint16_t filteredstatebefore = low;
 static uint32_t starttimehigh;
 static uint32_t highduration;
 static uint32_t lasthighduration;
-static uint32_t hightimesavg;
+static uint32_t hightimesavg = 60;
 static uint32_t startttimelow;
 static uint32_t lowduration;
 static uint32_t laststarttime = 0;
-#define  nbtime 	6  /// ms noise blanker
+#define  nbtime 	6  /// ノイズブランカの時間(ms)
 
 static char code[20];
 static uint16_t stop = low;
@@ -83,7 +89,7 @@ static const char *tone[] = {
 	"1000"
 };
 
-const int colums = 13; /// have to be 16 or 20
+const int colums = 13; /// 表示列数(本来は16/20向け)
 
 int lcdindex = 0;
 uint8_t line1[colums];
@@ -122,7 +128,7 @@ static gap_type_t classify_gap(uint32_t gap, uint32_t unit)
 	return GAP_CHAR;
 }
 //==================================================================
-//	updateinfolinelcd() : print info field
+//	updateinfolinelcd() : 情報行をLCDに表示
 //==================================================================
 static void updateinfolinelcd()
 {
@@ -149,7 +155,7 @@ static void updateinfolinelcd()
 }
 
 //==================================================================
-//	printascii : print the ascii code to the lcd
+//	printascii : ASCII文字をLCDに表示
 //==================================================================
 static void printAscii(int16_t asciinumber)
 {
@@ -178,7 +184,7 @@ static void printAscii(int16_t asciinumber)
 }
 
 //==================================================================
-//	chack switch
+//	スイッチ入力の確認
 //==================================================================
 static int check_sw()
 {
@@ -203,7 +209,7 @@ static int check_sw()
 }
 
 //==================================================================
-//	cw_decoder setup
+//	cw_decoder 初期化
 //==================================================================
 int cwd_setup()
 {
@@ -234,7 +240,7 @@ int cwd_setup()
 }
 
 //==================================================================
-//	cwDecoder : deocder main
+//	cwDecoder : デコーダ本体
 //==================================================================
 static int decodeAscii(int16_t asciinumber)
 {
@@ -253,6 +259,9 @@ static int decodeAscii(int16_t asciinumber)
 	} else if (asciinumber == 4) {			// VA
 		printAscii('V');
 		printAscii('A');
+	} else if (asciinumber == 7) {			// HH (訂正)
+		printAscii('H');
+		printAscii('H');
 	} else {
 		printAscii(asciinumber);
 	}
@@ -262,7 +271,7 @@ static int decodeAscii(int16_t asciinumber)
 }
 
 //==================================================================
-//	cwDecoder : deocder main
+//	cwDecoder : デコーダ本体
 //==================================================================
 int cwDecoder(int16_t *morseData)
 {
@@ -289,11 +298,9 @@ TEST_HIGH
 		}
 TEST_LOW
 
-		// calc goertzel
-//		magnitude = goertzel(morseData, GOERTZEL_SAMPLES) / 400;
+		// Goertzel 計算
 		magnitude = goertzel(morseData, GOERTZEL_SAMPLES);
 		tft_draw_line(159, 79, 159, 0 , BLACK);
-//		int16_t w = 80 - magnitude / 50;
 		int16_t w = 80 - magnitude / 8;
 		if (w < 0) w = 0;
 		if (w > 80) w = 80;
@@ -303,26 +310,26 @@ TEST_LOW
 		printf("mag = %d\n", magnitude);
 #endif
 		///////////////////////////////////////////////////////////
-		// here we will try to set the magnitude limit automatic //
+		// 振幅しきい値を自動更新
 		///////////////////////////////////////////////////////////
   		if (magnitude > magnitudelimit_low){
-    		magnitudelimit = (magnitudelimit +((magnitude - magnitudelimit)/6));  /// moving average filter
+			magnitudelimit = (magnitudelimit +((magnitude - magnitudelimit)/6));  /// 移動平均フィルタ
   		}
   		if (magnitudelimit < magnitudelimit_low) {
 			magnitudelimit = magnitudelimit_low;
 		}
 
 		////////////////////////////////////
-		// now we check for the magnitude //
+		// 振幅でしきい値判定
 		////////////////////////////////////
-		if(magnitude > magnitudelimit*0.6) {  // just to have some space up
+		if(magnitude > magnitudelimit*0.6) {  // 余裕を持たせる
      		realstate = high;
 		} else {
     		realstate = low;
 		}
 
 		/////////////////////////////////////////////////////
-		// here we clean up the state with a noise blanker //
+		// ノイズブランカで状態を安定化
 		/////////////////////////////////////////////////////
 		if (realstate != realstatebefore){
 			laststarttime = millis();
@@ -334,7 +341,7 @@ TEST_LOW
 		}
 
 		////////////////////////////////////////////////////////////
-		// Then we do want to have some durations on high and low //
+		// HIGH/LOW の継続時間を計測
 		////////////////////////////////////////////////////////////
 		if (filteredstate != filteredstatebefore) {
 			if (filteredstate == high) {
@@ -345,46 +352,52 @@ TEST_LOW
 				startttimelow = millis();
 				highduration = (millis() - starttimehigh);
 				if (highduration < (2*hightimesavg) || hightimesavg == 0) {
-					hightimesavg = (highduration+hightimesavg+hightimesavg) / 3;     // now we know avg dit time ( rolling 3 avg)
+				hightimesavg = (highduration+hightimesavg+hightimesavg) / 3;     // 短点平均を更新 (3点移動平均)
 				}
 				if (highduration > (5*hightimesavg) ) {
-					hightimesavg = highduration+hightimesavg;     // if speed decrease fast ..
+				hightimesavg = highduration+hightimesavg;     // 速度低下が急な場合に追従
+				}
+				if (hightimesavg < 24) {
+					hightimesavg = 24;
 				}
 			}
 		}
 
 		///////////////////////////////////////////////////////////////
-		// now we will check which kind of baud we have - dit or dah //
-		// and what kind of pause we do have 1 - 3 or 7 pause        //
-		// we think that hightimeavg = 1 bit                         //
+		// 短点/長点判定と休止(1/3/7単位)の判定
+		// 1/3/7 単位の休止を判定
+		// hightimesavg を 1単位(短点)とみなす
 		///////////////////////////////////////////////////////////////
 		if (filteredstate != filteredstatebefore){
 			stop = low;
-			if (filteredstate == low){  //// we did end a HIGH
-				if (highduration < (hightimesavg*2) && highduration > (hightimesavg*0.6)){ /// 0.6 filter out false dits
+			if (filteredstate == low){  //// HIGH 終了
+				if (highduration < (hightimesavg*2) && highduration > (hightimesavg*0.6)){ /// 0.6 未満はノイズ除外
 					strcat(code,".");
 //					printf(".");
 				}
 				if (highduration > (hightimesavg*2) && highduration < (hightimesavg*6)){
 					strcat(code,"-");
 //					printf("-");
-					wpm = (wpm + (1200/((highduration)/3)))/2;  //// the most precise we can do ;o)
+				wpm = (wpm + (1200/((highduration)/3)))/2;  //// 可能な限り精度の高い推定
+					if (wpm > 50) {
+						wpm = 50;
+					}
 				}
 			}
 		}
-		if (filteredstate == high) {  //// we did end a LOW
+		if (filteredstate == high) {  //// LOW 終了
 
 			if (hightimesavg > 0) {
 				gap_type_t g = classify_gap(lowduration, hightimesavg);
 
 				if (g == GAP_CHAR) {          // 文字間
 					if (strlen(code) > 0) {
-						decodeAscii(docode(code, &sw));
+						decodeAscii(decode(code, &sw));
 						code[0] = '\0';
 					}
 				} else if (g == GAP_WORD) {   // 単語間
 					if (strlen(code) > 0) {
-						decodeAscii(docode(code, &sw));
+						decodeAscii(decode(code, &sw));
 						code[0] = '\0';
 					}
 					decodeAscii(32);           // スペース出力
@@ -393,18 +406,18 @@ TEST_LOW
 		}
 
 		//////////////////////////////
-		// write if no more letters //
+		// 一定時間無音なら確定出力
 		//////////////////////////////
 		uint32_t unit = (hightimesavg > 0) ? hightimesavg : highduration;
 		if ((millis() - startttimelow) > unit * 6 && stop == low) {
-			decodeAscii(docode(code, &sw));
+			decodeAscii(decode(code, &sw));
 			code[0] = '\0';
 			stop = high;
 		}
 
 		/////////////////////////////////////
-		// we will turn on and off the LED //
-		// and the speaker                 //
+		// LED の点灯/消灯
+		// スピーカ制御(未使用)
 		/////////////////////////////////////
 		if(filteredstate == high){
 			GPIO_digitalWrite(LED_PIN, high);
@@ -413,7 +426,7 @@ TEST_LOW
 		}
 
 		//////////////////////////////////
-		// the end of main loop clean up//
+		// ループ終端の状態更新
 		/////////////////////////////////
 		updateinfolinelcd();
 		realstatebefore = realstate;
