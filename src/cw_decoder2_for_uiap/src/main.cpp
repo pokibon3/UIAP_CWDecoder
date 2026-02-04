@@ -1,39 +1,54 @@
-///////////////////////////////////////////////////////////////////////
-// CW Decoder made by Hjalmar Skovholm Hansen OZ1JHM  VER 1.01       //
-// Feel free to change, copy or what ever you like but respect       //
-// that license is <a href="http://www.gnu.org/copyleft/gpl.html" title="http://www.gnu.org/copyleft/gpl.html" rel="nofollow">http://www.gnu.org/copyleft/gpl.html</a>              //
-// Discuss and give great ideas on                                   //
-// <a href="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages" title="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages" rel="nofollow">https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages</a> //
-//                                                                   //
-// Modifications by KC2UEZ. Bumped to VER 1.2:                       //
-// Changed to work with the Arduino NANO.                            //
-// Added selection of "Target Frequency" and "Bandwith" at power up. //
-///////////////////////////////////////////////////////////////////////
- 
 ///////////////////////////////////////////////////////////////////////////
-// Read more here <a href="http://en.wikipedia.org/wiki/Goertzel_algorithm" title="http://en.wikipedia.org/wiki/Goertzel_algorithm" rel="nofollow">http://en.wikipedia.org/wiki/Goertzel_algorithm</a>        //
-// if you want to know about FFT the <a href="http://www.dspguide.com/pdfbook.htm" title="http://www.dspguide.com/pdfbook.htm" rel="nofollow">http://www.dspguide.com/pdfbook.htm</a> //
+// CWデコーダ (Hjalmar Skovholm Hansen OZ1JHM) バージョン 1.01
+// 自由に改変・複製できますが、GPL を遵守してください。
+// ライセンス: <a href="http://www.gnu.org/copyleft/gpl.html"
+// 		title="http://www.gnu.org/copyleft/gpl.html"
+// 		rel="nofollow">http://www.gnu.org/copyleft/gpl.html</a>
+// 議論・提案はこちら:
+// <a href="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages"
+// 		title="https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages"
+// 		rel="nofollow">https://groups.yahoo.com/neo/groups/oz1jhm/conversations/messages</a>
+//
+// KC2UEZ による改変 (バージョン 1.2):
+// - Arduino NANO に対応
+// - 起動時に「ターゲット周波数」と「帯域」を選択可能
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
-// Modified version by Kimio Ohe
-// Modifications:
-//  - port to UIAPduino Pro Micro(CH32V003)
-//  - add freq detector function
-//  - Refactoring of all source files
-// Date: 2025-11-07
-// このソフトウェアは GNU General Public License (GPL) に基づき配布されています。
-// 改変版も同じ GPL ライセンスで再配布してください。
+// Goertzel 法の解説: <a href="http://en.wikipedia.org/wiki/Goertzel_algorithm" 
+// 		title="http://en.wikipedia.org/wiki/Goertzel_algorithm"
+// 		rel="nofollow">http://en.wikipedia.org/wiki/Goertzel_algorithm</a>
+// FFT の参考: <a href="http://www.dspguide.com/pdfbook.htm"
+// 		title="http://www.dspguide.com/pdfbook.htm"
+// 		rel="nofollow">http://www.dspguide.com/pdfbook.htm</a>
 ///////////////////////////////////////////////////////////////////////////
-//
+
+///////////////////////////////////////////////////////////////////////////
 //
 //	CW Decoder Ver for UIAPduino Pro Micro
 //
-//  2024.08.12 New Create
-//  2024.08.21 integer version
-//  2025.09.30 port to UIAPduino Pro Micro(CH32V003)
-//  2025.10.04 add freq detector
-//  2025.11.07 first release Version 1.0
+// 改変版 (Kimiwo Ohe)
+// 変更点:
+//  - UIAPduino Pro Micro(CH32V003) に移植
+//  - 周波数検出機能を追加
+//  - 全ソースをリファクタリング
+// 日付: 2025-11-07 バージョン 1.0
+//  - DFT を Goertzel 法に変更
+// 日付: 2025.12.05 バージョン 1.1
+//  - オーディオ入力ダイナミックレンジ拡大
+// 日付: 2025.12.13 バージョン 1.2
+//  - DFTの周波数を調整
+//  - DFTの入力レベルを調整
+// 日付: 2025.12.20 バージョン 1.3
+//  - デコードタイミング微調整
+// 日付: 2026.02.04 バージョン 1.4
+//  - LCDに1.14inch ST7739をサポート
+//　- 音声サンプリングのダブルバッファ化と表示期間の最適化
+//  - ノイズブランカの改善
+//
+// このソフトウェアは GNU General Public License (GPL) に基づき配布されています。
+// 改変版も同じ GPL ライセンスで再配布してください。
+///////////////////////////////////////////////////////////////////////////
 //
 //  Hardware Connections
 //
@@ -51,6 +66,7 @@
 //	3.3V                  3.3V           		VCC(Via 78L33 3.3V)
 //  GND                    GND          		GND
 //
+///////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,19 +74,17 @@
 
 #include "common.h"
 #include "ch32v003fun.h"
-#include "st7735.h"
 #include "cw_decoder.h"
 #include "frequencyDetector.h"
 
 uint16_t sampling_period_us;
-uint8_t  buf[BUFSIZE];
+alignas(2) uint8_t  shared_buf[BUFSIZE];
 
 //==================================================================
 //	main
 //==================================================================
 int main()
 {
-	int16_t *morseData;
 	int8_t *vReal;
 	int8_t *vImag;
 
@@ -78,14 +92,12 @@ int main()
 	GPIO_setup();				// gpio Setup;
     tft_init();					// LCD init
 
-	vReal = (int8_t *)&buf[0];
-	vImag = (int8_t *)&buf[128];
-	morseData = (int16_t *)&buf[0];
-
+	vReal = (int8_t *)&shared_buf[0];
+	vImag = (int8_t *)&shared_buf[128];
 	while (1) {
 		// cw decoder
 		cwd_setup();			// freq detector Setup
-		cwDecoder(morseData);	// run cw decoder
+		cwDecoder();			// run cw decoder
 		// frequency detector
 		fd_setup();				// freq detector Setup
 		freqDetector(vReal, vImag);			// run freq counter

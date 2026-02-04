@@ -10,16 +10,16 @@
 #include "ch32v003_GPIO_branchless.h"
 #include "frequencyDetector.h"
 #include "fix_fft.h"
-#include "st7735.h"
 #include "ch32v003fun.h"
 
 #define FD_SAMPLING_FREQUENCY 6000	// Hz	+10%
 
 // 画面レイアウト用マクロ
-#define FFT_AREA_Y_TOP      19
-#define FFT_AREA_Y_BOTTOM   70
+#define FFT_FRAME_HEIGHT    (TFT_HEIGHT - 8)
+#define FFT_AREA_Y_TOP      ((TFT_HEIGHT * 19) / 80)
+#define FFT_AREA_Y_BOTTOM   ((TFT_HEIGHT * 70) / 80)
 #define FFT_AREA_HEIGHT     (FFT_AREA_Y_BOTTOM - FFT_AREA_Y_TOP + 1)
-#define FFT_LABEL_Y         73
+#define FFT_LABEL_Y         (FFT_FRAME_HEIGHT + 1)
 
 // タイトル文字列
 //static char title1[]   = "Freq.Detector";
@@ -49,11 +49,12 @@ static int check_sw()
 //==================================================================
 int fd_setup()
 {
+    tim1_pwm_stop();
     sampling_period_us = 900000L / FD_SAMPLING_FREQUENCY;
     //sampling_period_us = 1000000L / FD_SAMPLING_FREQUENCY;
 
 	// display title
-	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
+	tft_fill_rect(0, 0, TFT_WIDTH, TFT_HEIGHT, BLACK);
 
 /*
 	tft_set_color(BLUE);
@@ -84,10 +85,10 @@ int freqDetector(int8_t *vReal, int8_t *vImag)
 	uint16_t oldFreequency = 0;
 	char buf[16];
 
-	tft_fill_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT, BLACK);
-	tft_draw_rect(0, 0, ST7735_WIDTH, ST7735_HEIGHT - 8, BLUE);
+	tft_fill_rect(0, 0, TFT_WIDTH, TFT_HEIGHT, BLACK);
+	tft_draw_rect(0, 0, TFT_WIDTH, FFT_FRAME_HEIGHT, BLUE);
 
-	tft_set_cursor(0, FFT_LABEL_Y);
+	tft_set_cursor((TFT_WIDTH - (uint16_t)(strlen("0Hz      1KHz       2KHz") * 8)) / 2, FFT_LABEL_Y);
 	tft_set_color(BLUE);
 	tft_print("0Hz      1KHz       2KHz", FONT_SCALE_8X8);
 
@@ -127,15 +128,31 @@ TEST_LOW
 		// draw FFT result
 		uint8_t maxIndex = 0;
 		uint8_t maxValue = 0;
-		tft_fill_rect(1, FFT_AREA_Y_TOP, ST7735_WIDTH - 2, FFT_AREA_HEIGHT, BLACK);
-		tft_draw_line(64,  1,  64, 71, DARKBLUE); // 1.0kHz line
-		tft_draw_line(128, 1, 128, 71, DARKBLUE); // 2.0kHz line
+		uint8_t fft_bins = ((SAMPLES / 2) < 52) ? (SAMPLES / 2) : 52;
+		uint16_t bin_step = (TFT_WIDTH - 1) / fft_bins;
+		if (bin_step < 3) bin_step = 3;
+		uint16_t plot_width = bin_step * fft_bins;
+		if (plot_width > (TFT_WIDTH - 2)) {
+			plot_width = TFT_WIDTH - 2;
+		}
+		uint16_t plot_left = (TFT_WIDTH - plot_width) / 2;
+		uint16_t line1_x = plot_left + (plot_width * 2) / 5;
+		uint16_t line2_x = plot_left + (plot_width * 4) / 5;
+		uint16_t value_area_x = plot_left + (plot_width / 2);
+		uint16_t value_text_base = value_area_x + 2;
 
-		for (int i = 1; i < (((SAMPLES / 2) < 52) ? SAMPLES /2 : 52); i++) {
-			int8_t val = (vReal[i] * SCALE < 50) ? vReal[i] * SCALE : 50;
-			tft_draw_line(i * 3,     FFT_AREA_Y_BOTTOM       , i * 3,     FFT_AREA_Y_BOTTOM - val, WHITE);
-			tft_draw_line(i * 3 + 1, FFT_AREA_Y_BOTTOM - val , i * 3 + 2, FFT_AREA_Y_BOTTOM - val, WHITE);
-			tft_draw_line(i * 3 + 3, FFT_AREA_Y_BOTTOM       , i * 3 + 3, FFT_AREA_Y_BOTTOM - val, WHITE);
+		tft_fill_rect(1, FFT_AREA_Y_TOP, TFT_WIDTH - 2, FFT_AREA_HEIGHT, BLACK);
+		tft_draw_line(line1_x, 1, line1_x, FFT_FRAME_HEIGHT - 1, DARKBLUE); // 1.0kHz line
+		tft_draw_line(line2_x, 1, line2_x, FFT_FRAME_HEIGHT - 1, DARKBLUE); // 2.0kHz line
+
+		for (int i = 1; i < fft_bins; i++) {
+			int16_t val = vReal[i] * SCALE;
+			if (val > (int16_t)(FFT_AREA_HEIGHT - 1)) val = (int16_t)(FFT_AREA_HEIGHT - 1);
+			uint16_t x = plot_left + (i * bin_step);
+			uint16_t bar_width = (bin_step > 2) ? (bin_step - 1) : 1;
+			for (uint16_t dx = 0; dx < bar_width; dx++) {
+				tft_draw_line(x + dx, FFT_AREA_Y_BOTTOM, x + dx, FFT_AREA_Y_BOTTOM - val, WHITE);
+			}
 			if (vReal[i] > maxValue) {
 				maxValue = vReal[i];
 				maxIndex = i;
@@ -149,9 +166,9 @@ TEST_LOW
 			} else {
 				strcpy(buf, "    Hz");
 			}
-			tft_set_cursor ((6 - strlen(buf)) * 12 + 82, 3);
+			tft_set_cursor((6 - strlen(buf)) * 12 + value_text_base, 3);
 			tft_set_color(YELLOW);
-			tft_fill_rect(80, 1, ST7735_WIDTH - 82, 18, BLACK);
+			tft_fill_rect(value_area_x, 1, (plot_left + plot_width) - value_area_x - 2, 18, BLACK);
 			tft_print(buf, FONT_SCALE_16X16);
 			
 			oldFreequency = peakFrequency;
